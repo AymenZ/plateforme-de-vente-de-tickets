@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
+
 
 class Event(Base):
     __tablename__ = "events"
@@ -10,3 +12,6 @@ class Event(Base):
     description = Column(Text)
     category = Column(String(50))
     event_date = Column(DateTime, nullable=False)
+    organizer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    organizer = relationship("User", backref="events")
