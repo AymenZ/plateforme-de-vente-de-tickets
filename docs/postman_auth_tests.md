@@ -1,4 +1,4 @@
-# Guide de Tests Postman — Authentification & Gestion des Rôles
+# Guide de Tests Postman — Authentification, Rôles & Événements
 
 ## Prérequis
 
@@ -39,7 +39,9 @@ Dans l'onglet "Variables" de la collection, créer :
 | `base_url`       | `http://localhost:8000`    |
 | `client_token`   | (vide)                     |
 | `admin_token`    | (vide)                     |
+| `organizer_token`| (vide)                     |
 | `user_id`        | (vide)                     |
+| `event_id`       | (vide)                     |
 
 ---
 
@@ -582,6 +584,289 @@ Exécuter les tests dans cet ordre exact (utiliser le "Collection Runner" de Pos
 13. GET  /users/               → Admin liste les utilisateurs
 14. GET  /users/               → Client tente de lister → 403
 15. PUT  /users/{id}/role      → Rôle invalide → 400
+16. POST /events/              → Organisateur crée un événement
+17. POST /events/              → Client tente de créer → 403
+18. GET  /events/              → Liste des événements (public)
+19. GET  /events/{id}          → Détail d'un événement (public)
+20. PUT  /events/{id}          → Organisateur modifie son événement
+21. DELETE /events/{id}        → Organisateur supprime son événement
+22. POST /events/              → Créer sans token → 401
+```
+
+---
+
+## TEST 16 — Créer un événement (ORGANIZER)
+
+> **Pré-requis** : Avoir un utilisateur avec le rôle ORGANIZER (via Test 11) et son token.
+> Si pas encore fait, connectez l'organisateur :
+> - POST `{{base_url}}/auth/login` avec les identifiants de l'organisateur
+> - Sauvegarder le token dans `organizer_token`
+
+**Objectif** : Vérifier qu'un organisateur peut créer un événement
+
+- **Méthode** : `POST`
+- **URL** : `{{base_url}}/events/`
+- **Headers** :
+  - `Content-Type` : `application/json`
+  - `Authorization` : `Bearer {{organizer_token}}`
+- **Body** (raw → JSON) :
+```json
+{
+    "title": "Concert de Jazz",
+    "description": "Une soirée jazz exceptionnelle au centre-ville",
+    "category": "Musique",
+    "event_date": "2026-04-15T20:00:00"
+}
+```
+
+### Réponse attendue
+- **Status** : `201 Created`
+- **Body** :
+```json
+{
+    "id": 1,
+    "title": "Concert de Jazz",
+    "description": "Une soirée jazz exceptionnelle au centre-ville",
+    "category": "Musique",
+    "event_date": "2026-04-15T20:00:00",
+    "organizer_id": 2
+}
+```
+
+### Script de test
+```javascript
+pm.test("Status 201 Created", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Event has required fields", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property("id");
+    pm.expect(jsonData).to.have.property("title");
+    pm.expect(jsonData).to.have.property("organizer_id");
+    pm.collectionVariables.set("event_id", jsonData.id);
+});
+```
+
+---
+
+## TEST 17 — Client tente de créer un événement (ERREUR 403)
+
+**Objectif** : Vérifier qu'un CLIENT ne peut pas créer d'événement
+
+- **Méthode** : `POST`
+- **URL** : `{{base_url}}/events/`
+- **Headers** :
+  - `Content-Type` : `application/json`
+  - `Authorization` : `Bearer {{client_token}}`
+- **Body** (raw → JSON) :
+```json
+{
+    "title": "Mon événement",
+    "event_date": "2026-05-01T18:00:00"
+}
+```
+
+### Réponse attendue
+- **Status** : `403 Forbidden`
+- **Body** :
+```json
+{
+    "detail": "Accès refusé : rôle insuffisant"
+}
+```
+
+### Script de test
+```javascript
+pm.test("Status 403 Forbidden", function () {
+    pm.response.to.have.status(403);
+});
+
+pm.test("Access denied message", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.detail).to.eql("Accès refusé : rôle insuffisant");
+});
+```
+
+---
+
+## TEST 18 — Liste des événements (PUBLIC)
+
+**Objectif** : Vérifier que tout le monde peut voir la liste des événements
+
+- **Méthode** : `GET`
+- **URL** : `{{base_url}}/events/`
+- **Headers** : aucun (pas de token nécessaire)
+
+### Réponse attendue
+- **Status** : `200 OK`
+- **Body** : tableau d'événements
+```json
+[
+    {
+        "id": 1,
+        "title": "Concert de Jazz",
+        "description": "Une soirée jazz exceptionnelle au centre-ville",
+        "category": "Musique",
+        "event_date": "2026-04-15T20:00:00",
+        "organizer_id": 2
+    }
+]
+```
+
+### Script de test
+```javascript
+pm.test("Status 200 OK", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Response is an array", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.be.an("array");
+});
+
+pm.test("Events have required fields", function () {
+    var jsonData = pm.response.json();
+    if (jsonData.length > 0) {
+        pm.expect(jsonData[0]).to.have.property("id");
+        pm.expect(jsonData[0]).to.have.property("title");
+        pm.expect(jsonData[0]).to.have.property("event_date");
+        pm.expect(jsonData[0]).to.have.property("organizer_id");
+    }
+});
+```
+
+---
+
+## TEST 19 — Détail d'un événement (PUBLIC)
+
+**Objectif** : Vérifier qu'on peut consulter un événement spécifique
+
+- **Méthode** : `GET`
+- **URL** : `{{base_url}}/events/{{event_id}}`
+- **Headers** : aucun
+
+### Réponse attendue
+- **Status** : `200 OK`
+- **Body** :
+```json
+{
+    "id": 1,
+    "title": "Concert de Jazz",
+    "description": "Une soirée jazz exceptionnelle au centre-ville",
+    "category": "Musique",
+    "event_date": "2026-04-15T20:00:00",
+    "organizer_id": 2
+}
+```
+
+### Script de test
+```javascript
+pm.test("Status 200 OK", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Event details are correct", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.id).to.eql(parseInt(pm.collectionVariables.get("event_id")));
+    pm.expect(jsonData).to.have.property("title");
+    pm.expect(jsonData).to.have.property("organizer_id");
+});
+```
+
+---
+
+## TEST 20 — Modifier un événement (ORGANIZER)
+
+**Objectif** : Vérifier qu'un organisateur peut modifier son propre événement
+
+- **Méthode** : `PUT`
+- **URL** : `{{base_url}}/events/{{event_id}}`
+- **Headers** :
+  - `Content-Type` : `application/json`
+  - `Authorization` : `Bearer {{organizer_token}}`
+- **Body** (raw → JSON) :
+```json
+{
+    "title": "Concert de Jazz — Édition Spéciale",
+    "description": "Mise à jour de la description"
+}
+```
+
+### Réponse attendue
+- **Status** : `200 OK`
+- **Body** : L'événement avec le titre mis à jour
+
+### Script de test
+```javascript
+pm.test("Status 200 OK", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Title was updated", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.title).to.include("Édition Spéciale");
+});
+```
+
+---
+
+## TEST 21 — Supprimer un événement (ORGANIZER)
+
+**Objectif** : Vérifier qu'un organisateur peut supprimer son propre événement
+
+- **Méthode** : `DELETE`
+- **URL** : `{{base_url}}/events/{{event_id}}`
+- **Headers** :
+  - `Authorization` : `Bearer {{organizer_token}}`
+
+### Réponse attendue
+- **Status** : `200 OK`
+- **Body** :
+```json
+{
+    "message": "Événement supprimé avec succès"
+}
+```
+
+### Script de test
+```javascript
+pm.test("Status 200 OK", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Delete confirmation message", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.message).to.eql("Événement supprimé avec succès");
+});
+```
+
+---
+
+## TEST 22 — Créer un événement sans token (ERREUR 401)
+
+**Objectif** : Vérifier qu'on ne peut pas créer un événement sans authentification
+
+- **Méthode** : `POST`
+- **URL** : `{{base_url}}/events/`
+- **Headers** :
+  - `Content-Type` : `application/json`
+- **Body** (raw → JSON) :
+```json
+{
+    "title": "Événement sans auth",
+    "event_date": "2026-06-01T10:00:00"
+}
+```
+
+### Réponse attendue
+- **Status** : `401 Unauthorized`
+
+### Script de test
+```javascript
+pm.test("Status 401 Unauthorized", function () {
+    pm.response.to.have.status(401);
+});
 ```
 
 ---
