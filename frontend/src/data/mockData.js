@@ -7,7 +7,6 @@ export const events = [
     time: "22:00",
     location: "Carthage - Théâtre Antique",
     image: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400",
-    price: 80,
     description:
       "Un concert exceptionnel dans le cadre mythique du Théâtre Antique de Carthage.",
     capacity: 7500,
@@ -15,6 +14,12 @@ export const events = [
     duration: "3h",
     ageMin: 10,
     extraInfo: "Artiste invité : Saber Rebai",
+    price: 50,
+    tickets: [
+      { id: "1-vip", name: "CAT 1 - VIP", price: 120 },
+      { id: "1-standard", name: "CAT 2 - Standard", price: 80 },
+      { id: "1-economy", name: "CAT 3 - Économique", price: 50 },
+    ],
   },
 
   {
@@ -25,7 +30,6 @@ export const events = [
     time: "18:00",
     location: "Tunis - Cité de la Culture",
     image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400",
-    price: 20,
     description:
       "Projection de films arabes et africains dans le cadre du célèbre festival JCC.",
     capacity: 1200,
@@ -33,6 +37,11 @@ export const events = [
     duration: "2h30",
     ageMin: 12,
     extraInfo: "Film d'ouverture : Production Tunisienne 2026",
+    price: 20,
+    tickets: [
+      { id: "2-premium", name: "Siège Premium", price: 35 },
+      { id: "2-standard", name: "Siège Standard", price: 20 },
+    ],
   },
 
   {
@@ -43,7 +52,6 @@ export const events = [
     time: "07:00",
     location: "Tunis - Avenue Habib Bourguiba",
     image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400",
-    price: 0,
     description:
       "Participez au marathon officiel de Tunis avec plusieurs catégories de distance.",
     capacity: 5000,
@@ -51,6 +59,12 @@ export const events = [
     duration: "4h",
     ageMin: 18,
     extraInfo: "Distance principale : 42 km",
+    price: 0,
+    tickets: [
+      { id: "3-marathon", name: "Marathon (42 km)", price: 0 },
+      { id: "3-semi", name: "Semi-Marathon (21 km)", price: 0 },
+      { id: "3-10k", name: "Course 10 km", price: 0 },
+    ],
   },
 
   {
@@ -61,7 +75,6 @@ export const events = [
     time: "16:00",
     location: "Douz",
     image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=400",
-    price: 35,
     description:
       "Festival culturel mettant en valeur les traditions sahariennes et les spectacles folkloriques.",
     capacity: 3000,
@@ -69,6 +82,12 @@ export const events = [
     duration: "5h",
     ageMin: 0,
     extraInfo: "Spectacle : Fantasia & musique bédouine",
+    price: 15,
+    tickets: [
+      { id: "4-vip", name: "Accès VIP", price: 60 },
+      { id: "4-standard", name: "Accès Standard", price: 35 },
+      { id: "4-child", name: "Enfant (-12 ans)", price: 15 },
+    ],
   },
 
   {
@@ -79,7 +98,6 @@ export const events = [
     time: "10:00",
     location: "Tunis - Palais des Congrès",
     image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400",
-    price: 40,
     description:
       "Tournois e-sport, nouveautés gaming et rencontres avec des streamers tunisiens.",
     capacity: 2000,
@@ -87,6 +105,11 @@ export const events = [
     duration: "8h",
     ageMin: 10,
     extraInfo: "Tournoi principal : FIFA & Valorant",
+    price: 40,
+    tickets: [
+      { id: "5-vip", name: "Pass VIP", price: 70 },
+      { id: "5-standard", name: "Pass Standard", price: 40 },
+    ],
   },
 
   {
@@ -97,7 +120,6 @@ export const events = [
     time: "21:00",
     location: "Tabarka",
     image: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400",
-    price: 60,
     description:
       "Concerts live de jazz dans le cadre magnifique de Tabarka.",
     capacity: 4000,
@@ -105,6 +127,11 @@ export const events = [
     duration: "3h",
     ageMin: 12,
     extraInfo: "Artiste : Jazz Band International",
+    price: 60,
+    tickets: [
+      { id: "6-vip", name: "VIP Jazz", price: 90 },
+      { id: "6-standard", name: "Standard", price: 60 },
+    ],
   },
 
   {
@@ -115,7 +142,6 @@ export const events = [
     time: "09:00",
     location: "Sfax - Centre International des Foires",
     image: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=400",
-    price: 30,
     description:
       "Rencontres avec des entrepreneurs tunisiens et conférences sur l'innovation.",
     capacity: 1500,
@@ -123,6 +149,12 @@ export const events = [
     duration: "7h",
     ageMin: 16,
     extraInfo: "Invité spécial : CEO Startup Tunisienne",
+    price: 20,
+    tickets: [
+      { id: "7-early", name: "Early Bird", price: 20 },
+      { id: "7-standard", name: "Standard", price: 30 },
+      { id: "7-premium", name: "Premium Networking", price: 50 },
+    ],
   },
 
   {
@@ -133,7 +165,6 @@ export const events = [
     time: "19:30",
     location: "Tunis - Théâtre Municipal",
     image: "https://images.unsplash.com/photo-1503095396549-807759245b35?w=400",
-    price: 25,
     description:
       "Une pièce dramatique tunisienne contemporaine jouée au Théâtre Municipal.",
     capacity: 900,
@@ -141,6 +172,11 @@ export const events = [
     duration: "2h",
     ageMin: 12,
     extraInfo: "Compagnie : Théâtre National Tunisien",
+    price: 25,
+    tickets: [
+      { id: "8-front", name: "Front Row", price: 40 },
+      { id: "8-standard", name: "Standard", price: 25 },
+    ],
   },
 
   {
@@ -151,7 +187,6 @@ export const events = [
     time: "15:00",
     location: "La Marsa",
     image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=400",
-    price: 15,
     description:
       "Animations, jeux et spectacles pour toute la famille.",
     capacity: 1800,
@@ -159,6 +194,11 @@ export const events = [
     duration: "4h",
     ageMin: 0,
     extraInfo: "Animation : Magicien & clown",
+    price: 10,
+    tickets: [
+      { id: "9-adult", name: "Adulte", price: 15 },
+      { id: "9-child", name: "Enfant", price: 10 },
+    ],
   },
 ];
 
