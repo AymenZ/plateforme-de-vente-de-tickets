@@ -3,16 +3,26 @@ import { events, categories } from '../data/mockData';
 import EventCard from '../components/EventCard';
 import FilterBar from '../components/FilterBar';
 import '../styles/components.css';
+import '../styles/CatalogPage.css';
 
 function CatalogPage({ onEventSelect }) {
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [maxPrice, setMaxPrice] = useState(Infinity);
+  //const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [maxPrice, setMaxPrice] = useState(500);
 
   // Filtrer les événements selon les critères
   const filteredEvents = events.filter(event => {
-    const matchCategory = !selectedCategory || event.category === selectedCategory;
-    const matchPrice = event.price <= maxPrice;
-    return matchCategory && matchPrice;
+  const matchCategory =
+    selectedCategories.length === 0 ||
+    selectedCategories.includes(event.category);
+
+  const matchPrice = event.price <= maxPrice;
+
+  const matchSearch =
+    event.title.toLowerCase().includes(searchTerm.toLowerCase());
+
+  return matchCategory && matchPrice && matchSearch;
   });
 
   return (
@@ -23,9 +33,11 @@ function CatalogPage({ onEventSelect }) {
       
       <FilterBar
         categories={categories}
-        selectedCategory={selectedCategory}
+        selectedCategories={selectedCategories}
+        searchTerm={searchTerm}
         maxPrice={maxPrice}
-        onCategoryChange={setSelectedCategory}
+        onSearchChange={setSearchTerm}
+        onCategoryChange={setSelectedCategories}
         onMaxPriceChange={setMaxPrice}
       />
 

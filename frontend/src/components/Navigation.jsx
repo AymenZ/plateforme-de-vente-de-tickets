@@ -11,7 +11,9 @@ import {
   FaTicketAlt,
   FaChartBar,
   FaUsers,
+  FaRegUser,
 } from "react-icons/fa";
+import "../styles/components.css";
 
 function Navigation({
   onLogoClick,
@@ -73,7 +75,7 @@ function Navigation({
                 className="nav-avatar"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
               >
-                <FaUser />
+                <FaRegUser />
               </button>
 
               {isProfileOpen && (
