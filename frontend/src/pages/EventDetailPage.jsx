@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { events } from '../data/mockData';
+import React, { useState, useEffect } from 'react';
+import { eventsAPI } from '../services/api';
 import { 
   FaArrowLeft,FaHeart,FaRegHeart,FaShareAlt,FaCalendarAlt,FaMapMarkerAlt,FaUsers,FaClock,FaTag, FaWhatsapp, FaFacebookF, FaLink
 } from "react-icons/fa";
@@ -7,12 +7,27 @@ import '../styles/components.css';
 import '../styles/EventDetailPage.css';
 
 function EventDetailPage({ eventId, onBack }) {
-  const event = events.find(e => e.id === parseInt(eventId));
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
   const [quantities, setQuantities] = useState({});
   const [showShare, setShowShare] = useState(false);
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
+
+  useEffect(() => {
+    const fetchEvent = async () => {
+      try {
+        const res = await eventsAPI.getById(eventId);
+        setEvent(res.data);
+      } catch (err) {
+        console.error('Erreur lors du chargement de l\'événement :', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEvent();
+  }, [eventId]);
 
   const increase = (ticketId) => {
     setQuantities(prev => ({
@@ -59,6 +74,15 @@ function EventDetailPage({ eventId, onBack }) {
     (acc, item) => acc + item.quantity,
     0
   );
+
+  if (loading) {
+    return (
+      <div className="detail-page">
+        <button onClick={onBack} className="btn-back"><FaArrowLeft /></button>
+        <p>Chargement...</p>
+      </div>
+    );
+  }
 
   if (!event) {
     return (
@@ -145,7 +169,7 @@ function EventDetailPage({ eventId, onBack }) {
           <div className="about-section">
             <h3>À propos de l'événement</h3>
             <p>{event.description}</p>
-            <p className="extra-info"><strong>{event.extraInfo}</strong></p>
+            <p className="extra-info"><strong>{event.extra_info}</strong></p>
           </div>
 
           {/* MAP */}
@@ -194,7 +218,7 @@ function EventDetailPage({ eventId, onBack }) {
 
             <div className="info-item">
               <FaTag />
-              <span>Âge minimum : {event.ageMin} ans</span>
+              <span>Âge minimum : {event.age_min} ans</span>
             </div>
 
           </div>
@@ -203,7 +227,7 @@ function EventDetailPage({ eventId, onBack }) {
           <div className="ticket-section">
             <h3>Billets disponibles</h3>
 
-            {event.tickets.map(ticket => (
+            {(event.tickets || []).map(ticket => (
               <div key={ticket.id} className="ticket-card">
 
                 <div className="ticket-info">

@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import {
   FaShoppingCart,
   FaUser,
@@ -15,35 +17,39 @@ import {
 } from "react-icons/fa";
 import "../styles/components.css";
 
-function Navigation({
-  onLogoClick,
-  userType = null,
-  onLoginClick,
-  onSignupClick,
-  onLogoutClick,
-}) {
+function Navigation() {
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [cartCount] = useState(2);
   const [likesCount] = useState(1);
 
+  const userType = user?.role || null;
+
+  const handleLogout = () => {
+    logout();
+    setIsProfileOpen(false);
+    navigate("/");
+  };
+
   return (
     <nav className="navigation">
       <div className="nav-left">
-        <h1 className="nav-logo" onClick={onLogoClick}>
+        <h1 className="nav-logo" onClick={() => navigate("/")}>
            EventHub 🇹🇳
         </h1>
       </div>
 
-      <div className={`nav-right ${userType === "client" ? "nav-client" : ""}`}>
+      <div className={`nav-right ${isAuthenticated() ? "nav-client" : ""}`}>
 
         {/* 🔹 Déconnecté */}
-        {!userType && (
+        {!isAuthenticated() && (
           <>
-            <button className="nav-btn nav-login" onClick={onLoginClick}>
+            <button className="nav-btn nav-login" onClick={() => navigate("/login")}>
               <FaSignInAlt /> Connexion
             </button>
 
-            <button className="nav-btn nav-signup" onClick={onSignupClick}>
+            <button className="nav-btn nav-signup" onClick={() => navigate("/register")}>
               <FaUserPlus /> Inscription
             </button>
           </>
@@ -52,7 +58,7 @@ function Navigation({
         {/* 🔹 Client */}
         {userType === "client" && (
           <>
-            <button className="nav-btn nav-browse">
+            <button className="nav-btn nav-browse" onClick={() => navigate("/")}>
               <FaTicketAlt /> Parcourir
             </button>
 
@@ -92,7 +98,7 @@ function Navigation({
 
                   <button
                     className="dropdown-item logout-btn"
-                    onClick={onLogoutClick}
+                    onClick={handleLogout}
                   >
                     <FaSignOutAlt /> Déconnexion
                   </button>
@@ -135,7 +141,7 @@ function Navigation({
 
                   <button
                     className="dropdown-item logout-btn"
-                    onClick={onLogoutClick}
+                    onClick={handleLogout}
                   >
                     <FaSignOutAlt /> Déconnexion
                   </button>
@@ -148,7 +154,7 @@ function Navigation({
         {/* 🔹 Admin */}
         {userType === "admin" && (
           <>
-            <button className="nav-btn nav-admin">
+            <button className="nav-btn nav-admin" onClick={() => navigate("/admin")}>
               <FaCog /> Administration
             </button>
 
@@ -162,11 +168,11 @@ function Navigation({
 
               {isProfileOpen && (
                 <div className="nav-dropdown">
-                  <button className="dropdown-item">
+                  <button className="dropdown-item" onClick={() => { navigate("/admin"); setIsProfileOpen(false); }}>
                     <FaUsers /> Gestion Utilisateurs
                   </button>
 
-                  <button className="dropdown-item">
+                  <button className="dropdown-item" onClick={() => { navigate("/"); setIsProfileOpen(false); }}>
                     <FaTicketAlt /> Gestion Événements
                   </button>
 
@@ -174,7 +180,7 @@ function Navigation({
 
                   <button
                     className="dropdown-item logout-btn"
-                    onClick={onLogoutClick}
+                    onClick={handleLogout}
                   >
                     <FaSignOutAlt /> Déconnexion
                   </button>

@@ -75,3 +75,28 @@ def list_users(
         )
         for u in users
     ]
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(role_required("ADMIN")),
+):
+    """Supprimer un utilisateur (admin uniquement). Impossible de supprimer un admin."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Utilisateur non trouvé",
+        )
+
+    if user.role and user.role.name == "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Impossible de supprimer un administrateur.",
+        )
+
+    db.delete(user)
+    db.commit()
+    return None
