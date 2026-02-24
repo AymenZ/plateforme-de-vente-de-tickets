@@ -1,20 +1,39 @@
 from pydantic import BaseModel
-from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 
 class EventCreate(BaseModel):
     title: str
-    event_date: datetime
+    date: str                                   # "2026-07-20"
+    time: str                                   # "22:00"
     description: Optional[str] = None
     category: Optional[str] = None
+    location: Optional[str] = None
+    image: Optional[str] = None
+    price: Optional[float] = 0
+    capacity: Optional[int] = 0
+    attendees: Optional[int] = 0
+    duration: Optional[str] = None
+    age_min: Optional[int] = 0
+    extra_info: Optional[str] = None
+    tickets: Optional[list[Any]] = None
 
 
 class EventUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
-    event_date: Optional[datetime] = None
+    date: Optional[str] = None
+    time: Optional[str] = None
+    location: Optional[str] = None
+    image: Optional[str] = None
+    price: Optional[float] = None
+    capacity: Optional[int] = None
+    attendees: Optional[int] = None
+    duration: Optional[str] = None
+    age_min: Optional[int] = None
+    extra_info: Optional[str] = None
+    tickets: Optional[list[Any]] = None
 
 
 class EventOut(BaseModel):
@@ -22,7 +41,17 @@ class EventOut(BaseModel):
     title: str
     description: Optional[str]
     category: Optional[str]
-    event_date: datetime
+    date: str
+    time: str
+    location: Optional[str]
+    image: Optional[str]
+    price: Optional[float]
+    capacity: Optional[int]
+    attendees: Optional[int]
+    duration: Optional[str]
+    age_min: Optional[int]
+    extra_info: Optional[str]
+    tickets: Optional[list[Any]]
     organizer_id: int
 
     class Config:
