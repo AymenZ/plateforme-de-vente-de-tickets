@@ -1,0 +1,256 @@
+/* =========================
+   MAIN CONTAINER
+========================= */
+.create-event-container {
+  max-width: 750px;
+  margin: 40px auto;
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* =========================
+   HEADER
+========================= */
+.create-header {
+  margin-bottom: 25px;
+}
+
+.create-header h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* =========================
+   STEPPER
+========================= */
+.stepper-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.stepper-container::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #eee;
+  z-index: 0;
+}
+
+.step {
+  position: relative;
+  background: white;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #bbb;
+  font-size: 13px;
+  transition: 0.3s;
+}
+
+.step svg {
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.step.active {
+  color: #007bff;
+  font-weight: 600;
+}
+
+/* =========================
+   FORM SECTIONS
+========================= */
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-section label {
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+.form-section input,
+.form-section textarea,
+.form-section select {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.form-section input:focus,
+.form-section textarea:focus,
+.form-section select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+/* =========================
+   ERROR
+========================= */
+.error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+/* =========================
+   PREVIEW CARD
+========================= */
+.preview-card {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f7f9fc;
+  border-radius: 12px;
+  border: 1px solid #eee;
+}
+
+.preview-card h4 {
+  margin-bottom: 10px;
+}
+
+/* =========================
+   AUTO SAVE
+========================= */
+.autosave {
+  color: #007bff;
+  font-size: 13px;
+}
+
+.lastsaved {
+  font-size: 12px;
+  color: #888;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+.form-actions {
+  margin-top: 25px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+}
+
+.btn-secondary {
+  background: #f1f1f1;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #ddd;
+}
+
+.ticket-row .btn-danger {
+  padding: 6px;               /* smaller padding for icon */
+  width: 36px;                /* fixed width */
+  height: 36px;               /* fixed height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #e74c3c;
+  color: white;
+  transition: background 0.2s;
+}
+
+.btn-danger:hover {
+  background: #c0392b;
+}
+
+/* =========================
+   ANIMATION
+========================= */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Progress bar */
+.step-progress {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  height: 3px;
+  background: #007bff;
+  z-index: 0;
+  transition: width 0.4s ease-in-out;
+}
+
+/* Drag & drop area */
+.drag-drop-area {
+  margin-top: 10px;
+  padding: 30px;
+  border: 2px dashed #bbb;
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.drag-drop-area:hover {
+  border-color: #007bff;
+  background: #f7f9fc;
+}
+
+.image-preview {
+  max-width: 100%;
+  max-height: 250px;
+  border-radius: 8px;
+}
+
+.ticket-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.ticket-row input {
+  flex: 1;
+}
+
+.ticket-row > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
