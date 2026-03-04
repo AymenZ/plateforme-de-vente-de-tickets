@@ -1,141 +1,188 @@
-//i don't know why when i click in terminé or brouillon or terminé, he doesn't filter it , he still affiched all the events, and in terminé ther are some events that have a date > of the date of today and affiched in terminé, whish is not logic:
-import React, { useState, useEffect } from "react";
-import { organizerEvents, organizerStats } from "../data/mockData";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { eventsAPI } from "../services/api";
 import { 
-  FaCheckCircle, FaClock, FaRegFile, FaTimes, FaChartLine, FaPlus, FaSearch, FaCalendarAlt, FaTicketAlt, FaMoneyBillWave, FaUsers, 
-  FaCalendarDay, FaHourglassHalf, FaMusic, FaInfoCircle, FaChartBar, FaEdit, FaTrash 
+  FaCheckCircle, FaClock, FaRegFile, FaTimes, FaChartLine, FaPlus, FaSearch, FaCalendarAlt, FaTicketAlt,
+  FaCalendarDay, FaHourglassHalf, FaChartBar, FaEdit, FaTrash, FaMapMarkerAlt, FaUsers
 } from "react-icons/fa";
 import "../styles/dashboard.css";
 import CreateEventForm from "./CreateEventForm";
 
 function OrganizerDashboard() {
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("Tous");
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
 
   const statusIcons = {
-  Publié: { icon: <FaClock color="#3498db" />, label: "Publié" },
-  Brouillon: { icon: <FaRegFile color="#f1c40f" />, label: "Brouillon" },
-  Terminé: { icon: <FaCheckCircle color="#2ecc71" />, label: "Terminé" },
-};
-
-const handleUpdateEvent = (event) => {
-  setEditingEvent(event);
-  setShowCreate(true); // open modal
-};
-
-const handleEditSubmit = (updatedEvent) => {
-  const updatedEvents = events.map((e) =>
-    e.id === updatedEvent.id ? updatedEvent : e
-  );
-  setEvents(updatedEvents);
-  localStorage.setItem("organizerEvents", JSON.stringify(updatedEvents));
-  setEditingEvent(null);
-};
-  /*
-  const [events, setEvents] = useState(() => {
-    const savedEvents = localStorage.getItem("organizerEvents");
-    return savedEvents ? JSON.parse(savedEvents) : organizerEvents;
-  });
-  */
- //Auto-update event status
-  const updateEventStatuses = (eventsList) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // remove time
-
-  return eventsList.map((event) => {
-    if (!event.date) return event;
-
-    const eventDate = new Date(event.date);
-    eventDate.setHours(0, 0, 0, 0); // remove time
-
-    if (event.status === "Publié" && eventDate < today) {
-      return { ...event, status: "Terminé" };
-  }
-
-    return event;
-  });
+    "Publié": { icon: <FaClock color="#3498db" />, label: "Publié" },
+    "Brouillon": { icon: <FaRegFile color="#f1c40f" />, label: "Brouillon" },
+    "Terminé": { icon: <FaCheckCircle color="#2ecc71" />, label: "Terminé" },
   };
 
-  //Load events (merge mockData + localStorage)
-  const [events, setEvents] = useState(() => {
-  const saved = localStorage.getItem("organizerEvents");
+  // ── Auto-update: past events → Terminé ──
+  const autoUpdateStatuses = (eventsList) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventsList.map((event) => {
+      if (!event.date) return event;
+      const eventDate = new Date(event.date);
+      eventDate.setHours(0, 0, 0, 0);
+      if (event.status === "Publié" && eventDate < today) {
+        return { ...event, status: "Terminé" };
+      }
+      return event;
+    });
+  };
 
-  if (saved) {
-    return updateEventStatuses(JSON.parse(saved));
+  // ── Fetch events from API ──
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const res = await eventsAPI.getMyEvents();
+      const updated = autoUpdateStatuses(res.data);
+      setEvents(updated);
+    } catch (err) {
+      console.error("Erreur chargement événements:", err);
+      setError("Impossible de charger vos événements.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch when user is confirmed as organizer
+  useEffect(() => {
+    if (!authLoading && user?.role === "organizer") {
+      fetchEvents();
+    }
+  }, [authLoading, user]);
+
+  // ── Guards (AFTER all hooks) ──
+  if (authLoading) {
+    return (
+      <div className="dashboard-container">
+        <p style={{ textAlign: "center", padding: "2rem" }}>Chargement...</p>
+      </div>
+    );
   }
 
-  return updateEventStatuses(organizerEvents);
-  });
+  if (user?.role !== "organizer") {
+    return (
+      <div className="dashboard-container">
+        <div className="empty-state">
+          <h2>Accès refusé</h2>
+          <p>Vous devez être organisateur pour accéder à cette page.</p>
+        </div>
+      </div>
+    );
+  }
 
-  //const [activeFilter, setActiveFilter] = useState("Tous");
+  // ── Stats (event counts only — no ticket logic yet) ──
+  const totalEvents = events.length;
+  const publishedCount = events.filter(e => e.status === "Publié").length;
+  const draftCount = events.filter(e => e.status === "Brouillon").length;
+  const finishedCount = events.filter(e => e.status === "Terminé").length;
+  const totalCapacity = events.reduce((acc, e) => acc + (e.capacity || 0), 0);
 
-  //save to localStorage when events change
-   useEffect(() => {
-    localStorage.setItem("organizerEvents", JSON.stringify(events));
-  }, [events]);
+  // ── Upcoming events (next 3 published) ──
+  const upcomingEvents = events
+    .filter(e => e.status === "Publié" && new Date(e.date) >= new Date())
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(0, 3);
 
-  /*useEffect(() => {
-  const updated = updateEventStatuses(events);
-  setEvents(updated);
-}, []);*/
-  //calculate stats
-  const totalTicketsSold = events.reduce((acc, e) => acc + e.ticketsSold, 0);
-  const totalRevenue = events.reduce((acc, e) => acc + e.revenue, 0);
-  const totalCapacity = events.reduce((acc, e) => acc + e.capacity, 0);
+  // ── Most popular event (highest capacity) ──
+  const topEvent = events.length > 0
+    ? events.reduce((prev, cur) => (cur.capacity || 0) > (prev.capacity || 0) ? cur : prev)
+    : null;
 
-  const occupancy =
-    totalCapacity > 0
-      ? ((totalTicketsSold / totalCapacity) * 100).toFixed(1)
-      : 0;
-  const handleAddEvent = (newEvent) => {
-  const today = new Date();
-  const eventDate = new Date(newEvent.date);
+  // ── Create event handler ──
+  const handleAddEvent = async (newEventData) => {
+    // newEventData comes from CreateEventForm in backend-ready shape
+    try {
+      await eventsAPI.create(newEventData);
+      setShowCreate(false);
+      fetchEvents(); // Refresh list
+    } catch (err) {
+      console.error("Erreur création:", err);
+      alert("Erreur lors de la création de l'événement: " + (err.response?.data?.detail || err.message));
+    }
+  };
 
-  const updatedEvent =
-    eventDate < today
-      ? { ...newEvent, status: "Terminé" }
-      : newEvent;
+  // ── Edit event handler ──
+  const handleUpdateEvent = (event) => {
+    setEditingEvent(event);
+    setShowCreate(true);
+  };
 
-  setEvents((prev) => [...prev, updatedEvent]);
-  setShowCreate(false);
-};
+  const handleEditSubmit = async (updatedData) => {
+    try {
+      await eventsAPI.update(editingEvent.id, updatedData);
+      setEditingEvent(null);
+      setShowCreate(false);
+      fetchEvents();
+    } catch (err) {
+      console.error("Erreur modification:", err);
+      alert("Erreur lors de la modification: " + (err.response?.data?.detail || err.message));
+    }
+  };
 
-  // Filtrer et chercher les événements
+  // ── Delete event handler ──
+  const handleDeleteEvent = async (eventId) => {
+    const eventToDelete = events.find(e => e.id === eventId);
+    if (!eventToDelete) return;
+
+    if (window.confirm(`Voulez-vous vraiment supprimer l'événement "${eventToDelete.title}" ?`)) {
+      try {
+        await eventsAPI.delete(eventId);
+        fetchEvents();
+      } catch (err) {
+        console.error("Erreur suppression:", err);
+        alert("Erreur lors de la suppression: " + (err.response?.data?.detail || err.message));
+      }
+    }
+  };
+
+  // ── Filter + search ──
   const filteredEvents = events.filter((event) => {
-  const normalizedStatus = event.status?.trim().toLowerCase();
-  const normalizedFilter = statusFilter.trim().toLowerCase();
-
-  const matchStatus =
-    normalizedFilter === "tous" || normalizedStatus === normalizedFilter;
-
-  const matchSearch =
-    event.title.toLowerCase().includes(searchTerm.toLowerCase());
-
-  return matchStatus && matchSearch;
+    const normalizedStatus = event.status?.trim().toLowerCase();
+    const normalizedFilter = statusFilter.trim().toLowerCase();
+    const matchStatus = normalizedFilter === "tous" || normalizedStatus === normalizedFilter;
+    const matchSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchStatus && matchSearch;
   });
 
-  // Compter par statut
   const statusCount = {
-  Tous: events.length,
-  Publié: events.filter((e) => e.status === "Publié").length,
-  Brouillon: events.filter((e) => e.status === "Brouillon").length,
-  Terminé: events.filter((e) => e.status === "Terminé").length,
-};
+    Tous: events.length,
+    "Publié": publishedCount,
+    "Brouillon": draftCount,
+    "Terminé": finishedCount,
+  };
 
-  //delete event 
-  const handleDeleteEvent = (eventId) => {
-  const eventToDelete = events.find(e => e.id === eventId);
-  if (!eventToDelete) return;
-
-  if (window.confirm(`Voulez-vous vraiment supprimer l'événement "${eventToDelete.title}" ?`)) {
-    const updatedEvents = events.filter(e => e.id !== eventId);
-    setEvents(updatedEvents);
-    localStorage.setItem("organizerEvents", JSON.stringify(updatedEvents));
-    alert("Événement supprimé avec succès !");
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <p style={{ textAlign: "center", padding: "2rem" }}>Chargement du tableau de bord...</p>
+      </div>
+    );
   }
-};
+
+  if (error) {
+    return (
+      <div className="dashboard-container">
+        <div className="empty-state">
+          <h2>Erreur</h2>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-container">
@@ -154,54 +201,51 @@ const handleEditSubmit = (updatedEvent) => {
           <h3>
             <FaCalendarAlt /> Total Événements
           </h3>
-          <p>{events.length}</p>
+          <p>{totalEvents}</p>
         </div>
         <div className="stat-card">
           <h3>
-            <FaTicketAlt /> Tickets Vendus
+            <FaCheckCircle /> Publiés
           </h3>
-          <p>{totalTicketsSold}</p>
+          <p>{publishedCount}</p>
         </div>
         <div className="stat-card">
           <h3>
-            <FaMoneyBillWave /> Revenu Total
+            <FaRegFile /> Brouillons
           </h3>
-          <p>{totalRevenue} TND</p>
+          <p>{draftCount}</p>
         </div>
         <div className="stat-card">
           <h3>
-            <FaUsers /> Taux de Remplissage
+            <FaClock /> Terminés
           </h3>
-          <p>{occupancy}%</p>
-          <div className="progress-bar">
-            <div
-              className="progress-fill"
-              style={{ width: `${occupancy}%` }}
-            ></div>
-          </div>
+          <p>{finishedCount}</p>
         </div>
       </div>
 
       {/* ===== TOP EVENT ===== */}
+      {topEvent && (
       <div className="dashboard-section">
         <h3>
-          <FaChartBar /> Événement le plus populaire
+          <FaChartBar /> Événement avec la plus grande capacité
         </h3>
         <div className="top-event-card">
-          <h4>{organizerStats.topEvent.title}</h4>
+          <h4>{topEvent.title}</h4>
           <p>
             <FaTicketAlt />{" "}
-            {organizerStats.topEvent.ticketsSold} tickets vendus
+            {topEvent.capacity} places
           </p>
         </div>
       </div>
+      )}
 
       {/* ===== UPCOMING EVENTS ===== */}
+      {upcomingEvents.length > 0 && (
       <div className="dashboard-section">
         <h3>
           <FaClock /> Prochains événements
         </h3>
-        {organizerStats.upcomingEvents.map((event) => {
+        {upcomingEvents.map((event) => {
           const daysLeft = Math.ceil(
             (new Date(event.date) - new Date()) / (1000 * 60 * 60 * 24)
           );
@@ -220,6 +264,7 @@ const handleEditSubmit = (updatedEvent) => {
           );
         })}
       </div>
+      )}
 
       {/* ===== EVENTS LIST ===== */}
       <div className="dashboard-section">
@@ -256,42 +301,57 @@ const handleEditSubmit = (updatedEvent) => {
         {/* Events Table */}
         {filteredEvents.length > 0 ? (
           <div className="events-table">
-            {filteredEvents.map((event) => (
-<div key={event.id} className="event-row">
-  <div className="event-image">
-    <img src={event.image} alt={event.title} />
+            {filteredEvents.map((event) => {
+              const tickets = event.tickets || [];
+              const prices = tickets.map(t => Number(t.price)).filter(p => !isNaN(p));
+              const lowestPrice = prices.length > 0 ? Math.min(...prices) : (event.price || 0);
+              const isFree = lowestPrice === 0;
+              const statusClass = (event.status || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+              return (
+<div key={event.id} className={`event-card-row border-${statusClass}`}>
+  <div className="ecr-thumb">
+    {event.image ? (
+      <img src={event.image} alt={event.title} />
+    ) : (
+      <div className="ecr-thumb-placeholder"><FaCalendarAlt /></div>
+    )}
+    <span className={`ecr-badge badge-${statusClass}`}>
+      {statusIcons[event.status]?.icon} {event.status}
+    </span>
   </div>
 
-  <div className="event-info">
-    <h4>{event.title}</h4>
-    <p>{event.category} • {event.date} • {event.time}</p>
-    <div className="event-status">
-      {statusIcons[event.status]?.icon} <span>{statusIcons[event.status]?.label}</span>
+  <div className="ecr-body">
+    <h4 className="ecr-title">{event.title}</h4>
+    <div className="ecr-meta">
+      <span><FaCalendarAlt /> {event.date}</span>
+      <span><FaClock /> {event.time}</span>
+      {event.location && <span><FaMapMarkerAlt /> {event.location}</span>}
+    </div>
+    <div className="ecr-tags">
+      {event.category && <span className="ecr-tag">{event.category}</span>}
+      <span className="ecr-tag"><FaUsers /> {event.capacity || 0}</span>
+      <span className={`ecr-tag ${isFree ? "ecr-tag-free" : "ecr-tag-price"}`}>
+        {isFree ? "Gratuit" : `À partir de ${lowestPrice} TND`}
+      </span>
     </div>
   </div>
 
-  <div className="event-stats">
-    <div>Tickets: {event.ticketsSold} / {event.capacity}</div>
-    <div>Revenu: {event.revenue === 0 ? "Gratuit" : `${event.revenue} TND`}</div>
-  </div>
-
-  <div className="event-actions">
-    <button className="btn-icon btn-edit" title="Modifier" onClick={() => handleUpdateEvent(event)}>
+  <div className="ecr-actions">
+    <button className="ecr-btn ecr-btn-edit" title="Modifier" onClick={() => handleUpdateEvent(event)}>
       <FaEdit />
     </button>
-    <button className="btn-icon btn-delete" title="Supprimer" onClick={() => handleDeleteEvent(event.id)}>
+    <button className="ecr-btn ecr-btn-delete" title="Supprimer" onClick={() => handleDeleteEvent(event.id)}>
       <FaTrash />
     </button>
   </div>
 </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="empty-state">
             <p>Aucun événement trouvé</p>
-            {/*<button className="btn-create-event-small">
-              <FaPlus /> Créer votre premier événement
-            </button>*/}
           </div>
         )}
       </div>
@@ -306,7 +366,7 @@ const handleEditSubmit = (updatedEvent) => {
       <CreateEventForm
         onCancel={() => { setShowCreate(false); setEditingEvent(null); }}
         onAddEvent={editingEvent ? handleEditSubmit : handleAddEvent}
-        initialData={editingEvent} // <-- pass event to edit
+        initialData={editingEvent}
       />
     </div>
   </div>

@@ -161,6 +161,17 @@ body {
   transform: translateY(-2px);
 }
 
+.nav-export {
+  background: linear-gradient(135deg, #059669, #065f46);
+  color: white;
+}
+
+.nav-export:hover {
+  background: linear-gradient(135deg, #047857, #064e3b);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(5, 150, 105, 0.3);
+}
+
 .nav-admin {
   background: var(--warning);
   color: white;
@@ -320,6 +331,108 @@ body {
 .logout-btn:hover {
   background: rgba(220, 38, 38, 0.1);
   color: #991b1b;
+}
+
+/* NOTIFICATION BELL */
+.notification-container {
+  position: relative;
+}
+
+.nav-alert-btn {
+  position: relative;
+}
+
+.nav-alert-btn.ring {
+  animation: bellRing 0.6s ease;
+}
+
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(15deg); }
+  40% { transform: rotate(-15deg); }
+  60% { transform: rotate(8deg); }
+  80% { transform: rotate(-8deg); }
+}
+
+.alert-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #dc2626;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  max-height: 380px;
+  overflow-y: auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  padding: 0.75rem 0;
+  animation: fadeDown 0.2s ease;
+}
+
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.notification-dropdown h4 {
+  padding: 0.5rem 1rem 0.75rem;
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  border-bottom: 1px solid var(--border);
+}
+
+.notification-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  transition: background 0.15s;
+}
+
+.notification-item:hover {
+  background: var(--background);
+}
+
+.notification-item.unread {
+  background: rgba(99, 102, 241, 0.04);
+  font-weight: 500;
+}
+
+.notif-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+.notif-icon.booking { color: var(--primary-color); }
+.notif-icon.warning { color: #f59e0b; }
+.notif-icon.time { color: #3b82f6; }
+.notif-icon.draft { color: #8b5cf6; }
+
+.notification-dropdown .empty-msg {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-light);
+  font-size: 0.85rem;
 }
 
 /** Filter-Bar **/

@@ -27,6 +27,15 @@ def get_events(db: Session = Depends(get_db)):
     return event_service.get_all_events(db)
 
 
+@router.get("/my", response_model=List[EventOut])
+def get_my_events(
+    db: Session = Depends(get_db),
+    organizer: User = Depends(role_required("ORGANIZER")),
+):
+    """Lister les événements de l'organisateur connecté."""
+    return event_service.get_events_by_organizer(db, organizer.id)
+
+
 @router.get("/{event_id}", response_model=EventOut)
 def get_event(event_id: int, db: Session = Depends(get_db)):
     """Afficher les détails d'un événement (accessible à tous)."""

@@ -62,6 +62,18 @@ export const eventsAPI = {
 
   getById: (id) =>
     api.get(`/events/${id}`),
+
+  getMyEvents: () =>
+    api.get('/events/my'),
+
+  create: (eventData) =>
+    api.post('/events/', eventData),
+
+  update: (id, eventData) =>
+    api.put(`/events/${id}`, eventData),
+
+  delete: (id) =>
+    api.delete(`/events/${id}`),
 };
 
 export default api;

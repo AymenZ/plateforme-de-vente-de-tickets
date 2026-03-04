@@ -492,6 +492,212 @@
   background: #e68900;
 }
 
+/* ============= REVAMPED EVENT CARDS ============= */
+.event-card-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  transition: all 0.25s ease;
+  border-left: 5px solid #667eea;
+}
+
+.event-card-row:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+/* Status-colored left border */
+.event-card-row.border-publie  { border-left-color: #3b82f6; }
+.event-card-row.border-brouillon { border-left-color: #f59e0b; }
+.event-card-row.border-termine { border-left-color: #10b981; }
+
+/* Thumbnail */
+.ecr-thumb {
+  position: relative;
+  width: 180px;
+  min-height: 130px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.ecr-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.event-card-row:hover .ecr-thumb img {
+  transform: scale(1.05);
+}
+
+.ecr-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #ccc;
+  background: #f5f5f5;
+}
+
+/* Status badge on thumbnail */
+.ecr-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  backdrop-filter: blur(4px);
+}
+
+.badge-publie {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+}
+
+.badge-brouillon {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.badge-termine {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+/* Body */
+.ecr-body {
+  flex: 1;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ecr-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ecr-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.ecr-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ecr-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ecr-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.ecr-tag-free {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.ecr-tag-price {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+/* Actions column */
+.ecr-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 14px 14px 0;
+}
+
+.ecr-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.ecr-btn-edit {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.ecr-btn-edit:hover {
+  background: #f59e0b;
+  color: #fff;
+}
+
+.ecr-btn-delete {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.ecr-btn-delete:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* ============= RESPONSIVE EVENT CARDS ============= */
+@media (max-width: 640px) {
+  .event-card-row {
+    flex-direction: column;
+  }
+  .ecr-thumb {
+    width: 100%;
+    height: 140px;
+  }
+  .ecr-actions {
+    flex-direction: row;
+    padding: 0 14px 14px;
+  }
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;

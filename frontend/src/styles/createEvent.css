@@ -191,6 +191,22 @@
   background: #c0392b;
 }
 
+.form-actions > .btn-danger {
+  background: none;
+  border: 1.5px solid #e74c3c;
+  color: #e74c3c;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.form-actions > .btn-danger:hover {
+  background: #e74c3c;
+  color: white;
+}
+
 /* =========================
    ANIMATION
 ========================= */
@@ -236,6 +252,71 @@
   max-width: 100%;
   max-height: 250px;
   border-radius: 8px;
+}
+
+/* Image URL input */
+.image-url-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.image-url-input:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+.image-url-preview {
+  margin-top: 14px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  max-height: 250px;
+}
+
+.image-url-preview img {
+  max-width: 100%;
+  max-height: 250px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.image-url-placeholder {
+  margin-top: 14px;
+  padding: 40px;
+  border: 2px dashed #e0e0e0;
+  border-radius: 12px;
+  text-align: center;
+  color: #bbb;
+}
+
+.image-url-placeholder p {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+/* Draft button */
+.btn-draft {
+  background: none;
+  border: 1.5px solid #f59e0b;
+  color: #d97706;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.btn-draft:hover {
+  background: #f59e0b;
+  color: white;
 }
 
 .ticket-row {

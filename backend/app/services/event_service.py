@@ -20,6 +20,7 @@ def _event_to_dict(event: Event) -> dict:
         "duration": event.duration,
         "age_min": event.age_min,
         "extra_info": event.extra_info,
+        "status": event.status,
         "tickets": event.tickets,
         "organizer_id": event.organizer_id,
     }
@@ -35,6 +36,12 @@ def create_event(db: Session, data: EventCreate, organizer_id: int):
 
 def get_all_events(db: Session):
     return [_event_to_dict(e) for e in db.query(Event).all()]
+
+
+def get_events_by_organizer(db: Session, organizer_id: int):
+    """Return all events owned by a specific organizer."""
+    events = db.query(Event).filter(Event.organizer_id == organizer_id).all()
+    return [_event_to_dict(e) for e in events]
 
 
 def get_event_by_id(db: Session, event_id: int):

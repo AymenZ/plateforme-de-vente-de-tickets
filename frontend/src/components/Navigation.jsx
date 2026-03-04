@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { eventsAPI } from "../services/api";
 import {
   FaShoppingCart,
   FaUser,
@@ -15,6 +16,7 @@ import {
   FaUsers,
   FaRegUser,
 } from "react-icons/fa";
+import NotificationBell from "./NotificationBell";
 import "../styles/components.css";
 
 function Navigation() {
@@ -30,6 +32,46 @@ function Navigation() {
     logout();
     setIsProfileOpen(false);
     navigate("/");
+  };
+
+  const exportToCSV = async () => {
+    try {
+      const res = await eventsAPI.getMyEvents();
+      const myEvents = res.data;
+
+      const headers = [
+        "Title",
+        "Category",
+        "Date",
+        "Status",
+        "Capacity",
+        "Price",
+      ];
+
+      const rows = myEvents.map((event) => [
+        event.title,
+        event.category,
+        event.date,
+        event.status || "—",
+        event.capacity,
+        event.price,
+      ]);
+
+      const csvContent =
+        "data:text/csv;charset=utf-8," +
+        [headers, ...rows].map((e) => e.join(",")).join("\n");
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "organizer_events.csv");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error("Erreur export CSV:", err);
+      alert("Impossible d'exporter les événements.");
+    }
   };
 
   return (
@@ -111,13 +153,15 @@ function Navigation() {
         {/* 🔹 Organisateur */}
         {userType === "organizer" && (
           <>
-            <button className="nav-btn nav-primary">
+            <button className="nav-btn nav-primary" onClick={() => navigate("/dashboard")}>
               <FaChartBar /> Dashboard
             </button>
 
-            <button className="nav-btn nav-create">
-              <FaPlus /> Créer
+            <button className="nav-btn nav-export" onClick={exportToCSV}>
+              <FaTicketAlt /> Export CSV
             </button>
+
+            <NotificationBell />
 
             <div className="nav-profile">
               <button
@@ -129,12 +173,8 @@ function Navigation() {
 
               {isProfileOpen && (
                 <div className="nav-dropdown">
-                  <button className="dropdown-item">
+                  <button className="dropdown-item" onClick={() => { navigate("/dashboard"); setIsProfileOpen(false); }}>
                     <FaTicketAlt /> Mes Événements
-                  </button>
-
-                  <button className="dropdown-item">
-                    <FaChartBar /> Statistiques
                   </button>
 
                   <hr className="dropdown-divider" />

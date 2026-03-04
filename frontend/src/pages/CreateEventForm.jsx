@@ -1,11 +1,39 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { eventFormTemplate, eventCategories } from "../data/mockData";
 import "../styles/createEvent.css";
 import { 
-  FaInfoCircle, FaCalendarAlt, FaTicketAlt, FaImage, FaTrash
+  FaInfoCircle, FaCalendarAlt, FaTicketAlt, FaImage, FaTrash, FaLink, FaRegFile
 } from "react-icons/fa";
 
 const TOTAL_STEPS = 4;
+
+/**
+ * Maps the internal formData to the backend EventCreate / EventUpdate schema.
+ * The backend expects snake_case fields.
+ */
+function toBackendPayload(formData, status) {
+  return {
+    title: formData.title,
+    description: formData.description || null,
+    category: formData.category || null,
+    date: formData.date,
+    time: formData.time || "10:00",
+    location: formData.isOnline ? "En ligne" : (formData.location || null),
+    image: formData.image || null,
+    price: Number(formData.price) || 0,
+    capacity: Number(formData.capacity) || 0,
+    attendees: 0,
+    duration: null,
+    age_min: 0,
+    extra_info: null,
+    status: status,
+    tickets: (formData.ticketTiers || []).map((t) => ({
+      name: t.name,
+      price: Number(t.price),
+      quantity: Number(t.quantity),
+    })),
+  };
+}
 
 function CreateEventForm({ onCancel, onAddEvent, initialData }) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -14,7 +42,6 @@ function CreateEventForm({ onCancel, onAddEvent, initialData }) {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [imagePreview, setImagePreview] = useState(formData.image || null);
-  const fileInputRef = useRef();
   const resetForm = () => { setFormData(eventFormTemplate); setErrors({}); setImagePreview(null); setCurrentStep(1);};
   /* ===============================
      AUTO SAVE (every 30 seconds)
@@ -91,99 +118,44 @@ function CreateEventForm({ onCancel, onAddEvent, initialData }) {
   };
 
   /* ===============================
-     IMAGE UPLOAD & PREVIEW
+     IMAGE URL HANDLER
   ================================*/
-  const handleImageChange = (file) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-      setFormData((prev) => ({ ...prev, image: reader.result }));
-    };
-    if (file) reader.readAsDataURL(file);
+  const handleImageUrlChange = (e) => {
+    const url = e.target.value;
+    setFormData((prev) => ({ ...prev, image: url }));
+    setImagePreview(url);
   };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      handleImageChange(file);
-    }
-  };
-
-  const handleDragOver = (e) => e.preventDefault();
 
   /* ===============================
-     SUBMIT
+     SUBMIT — calls parent callback which speaks to the API
   ================================*/
   const handlePublish = () => {
-  if (formData.ticketTiers.some(t => !t.name)) {
-    alert("Tous les tickets doivent avoir un nom !");
-    return;
-  }
+    if (formData.ticketTiers.some(t => !t.name)) {
+      alert("Tous les tickets doivent avoir un nom !");
+      return;
+    }
 
-  const eventId = Date.now();
-  const newEvent = {
-    ...formData,
-    id: eventId,
-    status: "Publié",
-    ticketsSold: 0,
-    revenue: 0,
-    createdAt: new Date().toISOString(),
-    tickets: formData.ticketTiers.map((t) => ({
-      id: `${eventId}-${t.name.replace(/\s+/g, "-").toLowerCase()}`,
-      name: t.name,
-      price: Number(t.price),
-      quantity: Number(t.quantity),
-    })),
+    const payload = toBackendPayload(formData, "Publié");
+
+    if (onAddEvent) {
+      onAddEvent(payload);
+    }
+
+    localStorage.removeItem("eventDraft");
+    resetForm();
   };
-
-  const existingEvents =
-    JSON.parse(localStorage.getItem("organizerEvents")) || [];
-
-  const updatedEvents = [...existingEvents, newEvent];
-  localStorage.setItem("organizerEvents", JSON.stringify(updatedEvents));
-
-  if (onAddEvent) {
-    onAddEvent(newEvent); // update dashboard immediately
-  }
-
-  localStorage.removeItem("eventDraft");
-
-  alert("Événement publié avec succès !");
-
-  resetForm(); // reset form fields
-  onCancel(); // close modal
-};
 
   const handleSaveDraft = () => {
-  const eventId = Date.now();
+    // Save as draft — no validation required, can be called at any step
+    const payload = toBackendPayload(formData, "Brouillon");
 
-  const draftEvent = {
-    ...formData,
-    id: eventId,
-    status: "Brouillon",
-    ticketsSold: 0,
-    revenue: 0,
-    createdAt: new Date().toISOString(),
-    tickets: formData.ticketTiers,
+    if (onAddEvent) {
+      onAddEvent(payload);
+    }
+
+    localStorage.removeItem("eventDraft");
+    resetForm();
   };
-
-  const existingEvents =
-    JSON.parse(localStorage.getItem("organizerEvents")) || [];
-
-  const updatedEvents = [...existingEvents, draftEvent];
-
-  localStorage.setItem("organizerEvents", JSON.stringify(updatedEvents));
-
-  if (onAddEvent) {
-    onAddEvent(draftEvent);
-  }
-
-  alert("Brouillon sauvegardé !");
-  
-  resetForm();
-  onCancel(); //CLOSE MODAL
-};
 
   /* ===============================
      update
@@ -193,23 +165,31 @@ useEffect(() => {
     setFormData({
       ...eventFormTemplate,
       ...initialData,
-      ticketTiers: initialData.tickets || eventFormTemplate.ticketTiers,
+      ticketTiers: (initialData.tickets || []).map((t, i) => ({
+        id: t.id || i + 1,
+        name: t.name || "",
+        price: t.price || 0,
+        quantity: t.quantity || 100,
+        description: t.description || "",
+        endsAt: t.endsAt || null,
+      })),
     });
     if (initialData.image) setImagePreview(initialData.image);
   }
 }, [initialData]);
 
-   const handlePublishOrUpdate = () => {
-    if (initialData) {
-      // editing existing event
-      const updatedEvent = {...formData, tickets: formData.ticketTiers,};
-      onAddEvent(updatedEvent); // call handleEditSubmit in parent
-      alert("Événement modifié avec succès !");
-    } else {
-      // creating new event
-      handlePublish();
+  const handlePublishOrUpdate = () => {
+    if (formData.ticketTiers.some(t => !t.name)) {
+      alert("Tous les tickets doivent avoir un nom !");
+      return;
     }
-    onCancel();
+    // Always set status to "Publié" — both for new events and draft→publish
+    const payload = toBackendPayload(formData, "Publié");
+    if (onAddEvent) {
+      onAddEvent(payload);
+    }
+    localStorage.removeItem("eventDraft");
+    resetForm();
   };
   /* ===============================
      Handlers for ticket tiers (STEP 3)
@@ -398,26 +378,31 @@ const removeTicket = (index) => {
       {/* STEP 4 */}
       {currentStep === 4 && (
         <div className="form-section">
-          <label>Image</label>
-          <div
-            className="drag-drop-area"
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onClick={() => fileInputRef.current.click()}
-          >
-            {imagePreview ? (
-              <img src={imagePreview} alt="Preview" className="image-preview"/>
-            ) : (
-              <p>Glissez-déposez votre image ou cliquez ici</p>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              ref={fileInputRef}
-              onChange={(e) => handleImageChange(e.target.files[0])}
-            />
-          </div>
+          <label><FaLink style={{ marginRight: 6 }} /> Lien de l'image (URL)</label>
+          <input
+            type="url"
+            name="image"
+            placeholder="https://images.unsplash.com/photo-..."
+            value={formData.image}
+            onChange={handleImageUrlChange}
+            className="image-url-input"
+          />
+          {imagePreview && (
+            <div className="image-url-preview">
+              <img
+                src={imagePreview}
+                alt="Aperçu"
+                onError={(e) => { e.target.style.display = 'none'; }}
+                onLoad={(e) => { e.target.style.display = 'block'; }}
+              />
+            </div>
+          )}
+          {!imagePreview && (
+            <div className="image-url-placeholder">
+              <FaImage size={32} color="#ccc" />
+              <p>Collez un lien pour voir l'aperçu</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -425,18 +410,19 @@ const removeTicket = (index) => {
       <div className="form-actions">
         {currentStep > 1 && <button onClick={prevStep} className="btn-secondary">Précédent</button>}
         {currentStep < TOTAL_STEPS && <button onClick={nextStep} className="btn-primary">Suivant</button>}
+
+        {/* Draft — available at every step, for both new and editing */}
+        <button onClick={handleSaveDraft} className="btn-draft">
+          <FaRegFile style={{ marginRight: 4 }} /> Brouillon
+        </button>
+
+        {/* Publish / Update — only on last step */}
         {currentStep === TOTAL_STEPS && (
-          <>
-          {!initialData && (
-          <button onClick={handleSaveDraft} className="btn-secondary">
-            Sauvegarder en brouillon
+          <button onClick={handlePublishOrUpdate} className="btn-primary">
+            {initialData && initialData.status !== "Brouillon" ? "Modifier" : "Publier"}
           </button>
-          )}
-    <button onClick={handlePublishOrUpdate} className="btn-primary">
-      {initialData ? "Modifier" : "Publier"}
-    </button>
-  </>
-)}
+        )}
+
         <button onClick={onCancel} className="btn-danger">Annuler</button>
       </div>
     </div>

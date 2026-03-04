@@ -5,6 +5,7 @@ import EventDetailPage from './pages/EventDetailPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import AdminPage from './pages/AdminPage'
+import OrganizerDashboard from './pages/OrganizerDashboard'
 import './App.css'
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/dashboard" element={<OrganizerDashboard />} />
       </Routes>
     </div>
   )

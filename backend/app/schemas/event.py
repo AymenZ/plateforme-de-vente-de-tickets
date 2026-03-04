@@ -16,6 +16,7 @@ class EventCreate(BaseModel):
     duration: Optional[str] = None
     age_min: Optional[int] = 0
     extra_info: Optional[str] = None
+    status: Optional[str] = "Publié"
     tickets: Optional[list[Any]] = None
 
 
@@ -33,6 +34,7 @@ class EventUpdate(BaseModel):
     duration: Optional[str] = None
     age_min: Optional[int] = None
     extra_info: Optional[str] = None
+    status: Optional[str] = None
     tickets: Optional[list[Any]] = None
 
 
@@ -51,6 +53,7 @@ class EventOut(BaseModel):
     duration: Optional[str]
     age_min: Optional[int]
     extra_info: Optional[str]
+    status: Optional[str]
     tickets: Optional[list[Any]]
     organizer_id: int
 

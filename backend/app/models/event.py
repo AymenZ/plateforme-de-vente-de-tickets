@@ -21,6 +21,7 @@ class Event(Base):
     duration = Column(String(50))                       # "3h"
     age_min = Column(Integer, default=0)
     extra_info = Column(Text)
+    status = Column(String(20), default="Publié")        # Publié | Brouillon | Terminé
     _tickets = Column("tickets", Text)                  # JSON string
     organizer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
