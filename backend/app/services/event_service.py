@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.event import Event
+from app.models.ticket_type import TicketType
 from app.schemas.event import EventCreate, EventUpdate
 
 
@@ -21,13 +22,51 @@ def _event_to_dict(event: Event) -> dict:
         "age_min": event.age_min,
         "extra_info": event.extra_info,
         "status": event.status,
-        "tickets": event.tickets,
+        "tickets": [
+            {
+                "id": t.id,
+                "name": t.name,
+                "price": t.price,
+                "quantity": t.quantity,
+                "sold": t.sold,
+                "event_id": t.event_id,
+            }
+            for t in event.ticket_types
+        ],
         "organizer_id": event.organizer_id,
     }
 
 
+def _build_ticket_types(ticket_payload):
+    if not ticket_payload:
+        return []
+
+    ticket_types = []
+    for item in ticket_payload:
+        if hasattr(item, "model_dump"):
+            data = item.model_dump()
+        elif isinstance(item, dict):
+            data = item
+        else:
+            continue
+
+        ticket_types.append(
+            TicketType(
+                name=str(data.get("name") or "Standard").strip() or "Standard",
+                price=float(data.get("price") or 0),
+                quantity=int(data.get("quantity") or 0),
+            )
+        )
+    return ticket_types
+
+
 def create_event(db: Session, data: EventCreate, organizer_id: int):
-    event = Event(**data.model_dump(), organizer_id=organizer_id)
+    payload = data.model_dump(exclude={"tickets"})
+    event = Event(**payload, organizer_id=organizer_id)
+
+    for ticket_type in _build_ticket_types(data.tickets):
+        event.ticket_types.append(ticket_type)
+
     db.add(event)
     db.commit()
     db.refresh(event)
@@ -58,8 +97,15 @@ def update_event(db: Session, event_id: int, data: EventUpdate, organizer_id: in
     if event.organizer_id != organizer_id:
         return "forbidden"
 
-    for key, value in data.model_dump(exclude_unset=True).items():
+    updates = data.model_dump(exclude_unset=True, exclude={"tickets"})
+    for key, value in updates.items():
         setattr(event, key, value)
+
+    if data.tickets is not None:
+        # Full replace strategy for now (simple and explicit for organizer workflow)
+        event.ticket_types.clear()
+        for ticket_type in _build_ticket_types(data.tickets):
+            event.ticket_types.append(ticket_type)
 
     db.commit()
     db.refresh(event)

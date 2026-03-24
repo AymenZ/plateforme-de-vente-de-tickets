@@ -1,5 +1,7 @@
 from pydantic import BaseModel
-from typing import Optional, Any
+from typing import Optional
+
+from app.schemas.ticket_type import TicketTypeCreate, TicketTypeOut
 
 
 class EventCreate(BaseModel):
@@ -17,7 +19,7 @@ class EventCreate(BaseModel):
     age_min: Optional[int] = 0
     extra_info: Optional[str] = None
     status: Optional[str] = "Publié"
-    tickets: Optional[list[Any]] = None
+    tickets: Optional[list[TicketTypeCreate]] = None
 
 
 class EventUpdate(BaseModel):
@@ -35,7 +37,7 @@ class EventUpdate(BaseModel):
     age_min: Optional[int] = None
     extra_info: Optional[str] = None
     status: Optional[str] = None
-    tickets: Optional[list[Any]] = None
+    tickets: Optional[list[TicketTypeCreate]] = None
 
 
 class EventOut(BaseModel):
@@ -54,7 +56,7 @@ class EventOut(BaseModel):
     age_min: Optional[int]
     extra_info: Optional[str]
     status: Optional[str]
-    tickets: Optional[list[Any]]
+    tickets: Optional[list[TicketTypeOut]]
     organizer_id: int
 
     class Config:
