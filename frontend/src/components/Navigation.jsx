@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 import { eventsAPI } from "../services/api";
 import {
   FaShoppingCart,
@@ -21,9 +22,9 @@ import "../styles/components.css";
 
 function Navigation() {
   const { user, logout, isAuthenticated } = useAuth();
+  const { cartItemCount } = useCart();
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [cartCount] = useState(2);
   const [likesCount] = useState(1);
 
   const userType = user?.role || null;
@@ -104,10 +105,10 @@ function Navigation() {
               <FaTicketAlt /> Parcourir
             </button>
 
-            <button className="nav-icon-btn">
+            <button className="nav-icon-btn" onClick={() => navigate('/cart')}>
               <FaShoppingCart />
-              {cartCount > 0 && (
-                <span className="cart-badge">{cartCount}</span>
+              {cartItemCount > 0 && (
+                <span className="cart-badge">{cartItemCount}</span>
               )}
             </button>
 

@@ -33,11 +33,18 @@ function CatalogPage({ onEventSelect }) {
 
   // Filtrer les événements selon les critères
   const filteredEvents = events.filter(event => {
+  const ticketPrices = (event.tickets || [])
+    .map((t) => Number(t.price))
+    .filter((p) => !Number.isNaN(p));
+  const basePrice = ticketPrices.length > 0
+    ? Math.min(...ticketPrices)
+    : Number(event.price || 0);
+
   const matchCategory =
     selectedCategories.length === 0 ||
     selectedCategories.includes(event.category);
 
-  const matchPrice = event.price <= maxPrice;
+  const matchPrice = basePrice <= maxPrice;
 
   const matchSearch =
     event.title.toLowerCase().includes(searchTerm.toLowerCase());

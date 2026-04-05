@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import AdminPage from './pages/AdminPage'
 import OrganizerDashboard from './pages/OrganizerDashboard'
+import CartPage from './pages/CartPage'
 import './App.css'
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/dashboard" element={<OrganizerDashboard />} />
+        <Route path="/cart" element={<CartPage />} />
       </Routes>
     </div>
   )

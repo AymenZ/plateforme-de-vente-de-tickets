@@ -1,4 +1,3 @@
-import json as _json
 from sqlalchemy import Column, Integer, String, Text, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -22,20 +21,12 @@ class Event(Base):
     age_min = Column(Integer, default=0)
     extra_info = Column(Text)
     status = Column(String(20), default="Publié")        # Publié | Brouillon | Terminé
-    _tickets = Column("tickets", Text)                  # JSON string
     organizer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     organizer = relationship("User", backref="events")
-
-    @property
-    def tickets(self):
-        if self._tickets:
-            return _json.loads(self._tickets)
-        return None
-
-    @tickets.setter
-    def tickets(self, value):
-        if value is not None:
-            self._tickets = _json.dumps(value, ensure_ascii=False)
-        else:
-            self._tickets = None
+    ticket_types = relationship(
+        "TicketType",
+        back_populates="event",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

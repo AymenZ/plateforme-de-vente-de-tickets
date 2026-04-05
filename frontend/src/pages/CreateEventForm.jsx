@@ -7,12 +7,55 @@ import {
 
 const TOTAL_STEPS = 4;
 
+function normalizeTicketTypes(source) {
+  const list = Array.isArray(source) ? source : [];
+  return list.map((t, index) => ({
+    id: t?.id ?? `${Date.now()}-${index}`,
+    name: t?.name || "",
+    price: Number(t?.price) || 0,
+    quantity: Number(t?.quantity) || 0,
+    description: t?.description || "",
+    endsAt: t?.endsAt || null,
+  }));
+}
+
+function normalizeFormData(source) {
+  const merged = {
+    ...eventFormTemplate,
+    ...(source || {}),
+  };
+  const legacyTickets = Array.isArray(source?.tickets) ? source.tickets : [];
+  const legacyTiers = Array.isArray(merged.ticketTiers) ? merged.ticketTiers : [];
+  const types = Array.isArray(merged.ticketTypes)
+    ? merged.ticketTypes
+    : (legacyTiers.length > 0 ? legacyTiers : legacyTickets);
+  return {
+    ...merged,
+    ticketTypes: normalizeTicketTypes(types),
+  };
+}
+
 /**
  * Maps the internal formData to the backend EventCreate / EventUpdate schema.
  * The backend expects snake_case fields.
  */
 function toBackendPayload(formData, status) {
+  const sourceTickets = Array.isArray(formData.ticketTypes)
+    ? formData.ticketTypes
+    : (Array.isArray(formData.tickets) ? formData.tickets : []);
+
+  const normalizedTickets = sourceTickets.map((t) => ({
+    name: (t.name || "").trim(),
+    price: Number(t.price),
+    quantity: Number(t.quantity),
+  })).filter((t) => t.name.length > 0);
+  const ticketPrices = normalizedTickets
+    .map((t) => Number(t.price))
+    .filter((p) => !Number.isNaN(p));
+  const minTicketPrice = ticketPrices.length > 0 ? Math.min(...ticketPrices) : 0;
+
   return {
+    eventData: {
     title: formData.title,
     description: formData.description || null,
     category: formData.category || null,
@@ -20,29 +63,28 @@ function toBackendPayload(formData, status) {
     time: formData.time || "10:00",
     location: formData.isOnline ? "En ligne" : (formData.location || null),
     image: formData.image || null,
-    price: Number(formData.price) || 0,
+    // Keep event.price aligned with the lowest ticket type price.
+    price: minTicketPrice,
     capacity: Number(formData.capacity) || 0,
-    attendees: 0,
+    attendees: Number(formData.attendees) || 0,
     duration: null,
     age_min: 0,
     extra_info: null,
     status: status,
-    tickets: (formData.ticketTiers || []).map((t) => ({
-      name: t.name,
-      price: Number(t.price),
-      quantity: Number(t.quantity),
-    })),
+    },
+    ticketTypes: normalizedTickets,
   };
 }
 
 function CreateEventForm({ onCancel, onAddEvent, initialData }) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState(initialData || eventFormTemplate);
+  const [formData, setFormData] = useState(() => normalizeFormData(initialData || eventFormTemplate));
   const [errors, setErrors] = useState({});
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [imagePreview, setImagePreview] = useState(formData.image || null);
-  const resetForm = () => { setFormData(eventFormTemplate); setErrors({}); setImagePreview(null); setCurrentStep(1);};
+  const resetForm = () => { setFormData(normalizeFormData(eventFormTemplate)); setErrors({}); setImagePreview(null); setCurrentStep(1);};
   /* ===============================
      AUTO SAVE (every 30 seconds)
   ================================*/
@@ -65,7 +107,7 @@ function CreateEventForm({ onCancel, onAddEvent, initialData }) {
     const draft = localStorage.getItem("eventDraft");
     if (draft) {
       const parsed = JSON.parse(draft);
-      setFormData(parsed);
+      setFormData(normalizeFormData(parsed));
       if (parsed.image) setImagePreview(parsed.image);
     }
   }, []);
@@ -129,8 +171,12 @@ function CreateEventForm({ onCancel, onAddEvent, initialData }) {
   /* ===============================
      SUBMIT — calls parent callback which speaks to the API
   ================================*/
-  const handlePublish = () => {
-    if (formData.ticketTiers.some(t => !t.name)) {
+  const handlePublish = async () => {
+    const ticketTypes = Array.isArray(formData.ticketTypes)
+      ? formData.ticketTypes
+      : (Array.isArray(formData.tickets) ? formData.tickets : []);
+
+    if (ticketTypes.some(t => !(t.name || "").trim())) {
       alert("Tous les tickets doivent avoir un nom !");
       return;
     }
@@ -138,23 +184,31 @@ function CreateEventForm({ onCancel, onAddEvent, initialData }) {
     const payload = toBackendPayload(formData, "Publié");
 
     if (onAddEvent) {
-      onAddEvent(payload);
+      try {
+        setIsSubmitting(true);
+        await onAddEvent(payload);
+        localStorage.removeItem("eventDraft");
+        resetForm();
+      } finally {
+        setIsSubmitting(false);
+      }
     }
-
-    localStorage.removeItem("eventDraft");
-    resetForm();
   };
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     // Save as draft — no validation required, can be called at any step
     const payload = toBackendPayload(formData, "Brouillon");
 
     if (onAddEvent) {
-      onAddEvent(payload);
+      try {
+        setIsSubmitting(true);
+        await onAddEvent(payload);
+        localStorage.removeItem("eventDraft");
+        resetForm();
+      } finally {
+        setIsSubmitting(false);
+      }
     }
-
-    localStorage.removeItem("eventDraft");
-    resetForm();
   };
 
   /* ===============================
@@ -162,50 +216,48 @@ function CreateEventForm({ onCancel, onAddEvent, initialData }) {
   ================================*/
 useEffect(() => {
   if (initialData) {
-    setFormData({
-      ...eventFormTemplate,
-      ...initialData,
-      ticketTiers: (initialData.tickets || []).map((t, i) => ({
-        id: t.id || i + 1,
-        name: t.name || "",
-        price: t.price || 0,
-        quantity: t.quantity || 100,
-        description: t.description || "",
-        endsAt: t.endsAt || null,
-      })),
-    });
+    setFormData(normalizeFormData(initialData));
     if (initialData.image) setImagePreview(initialData.image);
   }
 }, [initialData]);
 
-  const handlePublishOrUpdate = () => {
-    if (formData.ticketTiers.some(t => !t.name)) {
+  const handlePublishOrUpdate = async () => {
+    const ticketTypes = Array.isArray(formData.ticketTypes)
+      ? formData.ticketTypes
+      : (Array.isArray(formData.tickets) ? formData.tickets : []);
+
+    if (ticketTypes.some(t => !(t.name || "").trim())) {
       alert("Tous les tickets doivent avoir un nom !");
       return;
     }
     // Always set status to "Publié" — both for new events and draft→publish
     const payload = toBackendPayload(formData, "Publié");
     if (onAddEvent) {
-      onAddEvent(payload);
+      try {
+        setIsSubmitting(true);
+        await onAddEvent(payload);
+        localStorage.removeItem("eventDraft");
+        resetForm();
+      } finally {
+        setIsSubmitting(false);
+      }
     }
-    localStorage.removeItem("eventDraft");
-    resetForm();
   };
-  /* ===============================
-     Handlers for ticket tiers (STEP 3)
-  ================================*/
+    /* ===============================
+      Handlers for ticket types (STEP 3)
+    ================================*/
 
   const handleTicketChange = (index, field, value) => {
-  const updatedTickets = [...formData.ticketTiers];
+  const updatedTickets = [...(formData.ticketTypes || [])];
   updatedTickets[index][field] = field === "price" || field === "quantity" ? Number(value) : value;
-  setFormData((prev) => ({ ...prev, ticketTiers: updatedTickets }));
+  setFormData((prev) => ({ ...prev, ticketTypes: updatedTickets }));
 };
 
 const addTicket = () => {
   setFormData((prev) => ({
     ...prev,
-    ticketTiers: [
-      ...prev.ticketTiers,
+    ticketTypes: [
+      ...(prev.ticketTypes || []),
       {
         id: Date.now(), // temporary id
         name: "",
@@ -219,9 +271,9 @@ const addTicket = () => {
 };
 
 const removeTicket = (index) => {
-  const updatedTickets = [...formData.ticketTiers];
+  const updatedTickets = [...(formData.ticketTypes || [])];
   updatedTickets.splice(index, 1);
-  setFormData((prev) => ({ ...prev, ticketTiers: updatedTickets }));
+  setFormData((prev) => ({ ...prev, ticketTypes: updatedTickets }));
 };
   /* ===============================
      RENDER
@@ -314,7 +366,7 @@ const removeTicket = (index) => {
   <div className="form-section">
     <label>Tickets</label>
 
-    {(formData.ticketTiers || []).map((ticket, index) => (
+    {(formData.ticketTypes || []).map((ticket, index) => (
       <div key={ticket.id} className="ticket-row">
         <div style={{ flex: 2, display: "flex", flexDirection: "column" }}>
           <label>Nom du ticket</label>
@@ -412,13 +464,13 @@ const removeTicket = (index) => {
         {currentStep < TOTAL_STEPS && <button onClick={nextStep} className="btn-primary">Suivant</button>}
 
         {/* Draft — available at every step, for both new and editing */}
-        <button onClick={handleSaveDraft} className="btn-draft">
-          <FaRegFile style={{ marginRight: 4 }} /> Brouillon
+        <button onClick={handleSaveDraft} className="btn-draft" disabled={isSubmitting}>
+          <FaRegFile style={{ marginRight: 4 }} /> {isSubmitting ? "Enregistrement..." : "Brouillon"}
         </button>
 
         {/* Publish / Update — only on last step */}
         {currentStep === TOTAL_STEPS && (
-          <button onClick={handlePublishOrUpdate} className="btn-primary">
+          <button onClick={handlePublishOrUpdate} className="btn-primary" disabled={isSubmitting}>
             {initialData && initialData.status !== "Brouillon" ? "Modifier" : "Publier"}
           </button>
         )}
