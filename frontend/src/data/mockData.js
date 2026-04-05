@@ -432,7 +432,7 @@ export const eventFormTemplate = {
   price: 0,
   image: "",
   status: "Brouillon",
-  ticketTiers: [
+  ticketTypes: [
     {
       id: 1,
       name: "Standard",

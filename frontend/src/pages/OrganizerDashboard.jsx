@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { eventsAPI } from "../services/api";
+import { eventsAPI, ticketTypesAPI } from "../services/api";
 import { 
   FaCheckCircle, FaClock, FaRegFile, FaTimes, FaChartLine, FaPlus, FaSearch, FaCalendarAlt, FaTicketAlt,
   FaCalendarDay, FaHourglassHalf, FaChartBar, FaEdit, FaTrash, FaMapMarkerAlt, FaUsers
@@ -11,7 +10,6 @@ import CreateEventForm from "./CreateEventForm";
 
 function OrganizerDashboard() {
   const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
 
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +23,66 @@ function OrganizerDashboard() {
     "Publié": { icon: <FaClock color="#3498db" />, label: "Publié" },
     "Brouillon": { icon: <FaRegFile color="#f1c40f" />, label: "Brouillon" },
     "Terminé": { icon: <FaCheckCircle color="#2ecc71" />, label: "Terminé" },
+  };
+
+  const normalizeTicketTypes = (ticketTypes = []) => (
+    (Array.isArray(ticketTypes) ? ticketTypes : [])
+      .map((t) => ({
+        id: t?.id,
+        name: String(t?.name || "").trim(),
+        price: Number(t?.price) || 0,
+        quantity: Number(t?.quantity) || 0,
+      }))
+      .filter((t) => t.name.length > 0)
+  );
+
+  const syncEventTicketTypes = async (eventId, submittedTicketTypes, fallbackEventData) => {
+    const normalized = normalizeTicketTypes(submittedTicketTypes);
+    const targetTicketTypes = normalized.length > 0
+      ? normalized
+      : [
+          {
+            name: "Standard",
+            price: Number(fallbackEventData?.price) || 0,
+            quantity: Number(fallbackEventData?.capacity) || 0,
+          },
+        ];
+
+    const existingRes = await ticketTypesAPI.listByEvent(eventId);
+    const existing = Array.isArray(existingRes.data) ? existingRes.data : [];
+    const existingById = new Map(existing.map((t) => [Number(t.id), t]));
+    const keptExistingIds = new Set();
+
+    for (const ticketType of targetTicketTypes) {
+      const parsedId = Number(ticketType.id);
+      const hasExistingId = Number.isInteger(parsedId) && existingById.has(parsedId);
+
+      if (hasExistingId) {
+        keptExistingIds.add(parsedId);
+        await ticketTypesAPI.update(eventId, parsedId, {
+          name: ticketType.name,
+          price: ticketType.price,
+          quantity: ticketType.quantity,
+        });
+      } else {
+        await ticketTypesAPI.create(eventId, {
+          name: ticketType.name,
+          price: ticketType.price,
+          quantity: ticketType.quantity,
+        });
+      }
+    }
+
+    for (const existingTicketType of existing) {
+      const existingId = Number(existingTicketType.id);
+      if (!keptExistingIds.has(existingId)) {
+        try {
+          await ticketTypesAPI.delete(eventId, existingId);
+        } catch (err) {
+          console.warn("Suppression ticket type ignorée:", err?.response?.data || err.message);
+        }
+      }
+    }
   };
 
   // ── Auto-update: past events → Terminé ──
@@ -103,15 +161,25 @@ function OrganizerDashboard() {
     : null;
 
   // ── Create event handler ──
-  const handleAddEvent = async (newEventData) => {
-    // newEventData comes from CreateEventForm in backend-ready shape
+  const handleAddEvent = async (payload) => {
     try {
-      await eventsAPI.create(newEventData);
+      const eventData = payload?.eventData || {};
+      const ticketTypes = payload?.ticketTypes || [];
+
+      const createRes = await eventsAPI.create(eventData);
+      const eventId = createRes?.data?.id;
+
+      if (!eventId) {
+        throw new Error("ID événement manquant après création");
+      }
+
+      await syncEventTicketTypes(eventId, ticketTypes, eventData);
       setShowCreate(false);
       fetchEvents(); // Refresh list
     } catch (err) {
       console.error("Erreur création:", err);
       alert("Erreur lors de la création de l'événement: " + (err.response?.data?.detail || err.message));
+      throw err;
     }
   };
 
@@ -121,15 +189,20 @@ function OrganizerDashboard() {
     setShowCreate(true);
   };
 
-  const handleEditSubmit = async (updatedData) => {
+  const handleEditSubmit = async (payload) => {
     try {
-      await eventsAPI.update(editingEvent.id, updatedData);
+      const eventData = payload?.eventData || {};
+      const ticketTypes = payload?.ticketTypes || [];
+
+      await eventsAPI.update(editingEvent.id, eventData);
+      await syncEventTicketTypes(editingEvent.id, ticketTypes, eventData);
       setEditingEvent(null);
       setShowCreate(false);
       fetchEvents();
     } catch (err) {
       console.error("Erreur modification:", err);
       alert("Erreur lors de la modification: " + (err.response?.data?.detail || err.message));
+      throw err;
     }
   };
 

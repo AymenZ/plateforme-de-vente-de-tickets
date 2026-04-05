@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { eventsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { 
   FaArrowLeft,FaHeart,FaRegHeart,FaShareAlt,FaCalendarAlt,FaMapMarkerAlt,FaUsers,FaClock,FaTag, FaWhatsapp, FaFacebookF, FaLink
 } from "react-icons/fa";
@@ -7,13 +10,17 @@ import '../styles/components.css';
 import '../styles/EventDetailPage.css';
 
 function EventDetailPage({ eventId, onBack }) {
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
+  const { addToCart, cartItemCount } = useCart();
+
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
   const [quantities, setQuantities] = useState({});
   const [showShare, setShowShare] = useState(false);
-  const [cart, setCart] = useState([]);
-  const [showCart, setShowCart] = useState(false);
+  const [addingTicketId, setAddingTicketId] = useState(null);
+  const [feedback, setFeedback] = useState('');
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -29,10 +36,10 @@ function EventDetailPage({ eventId, onBack }) {
     fetchEvent();
   }, [eventId]);
 
-  const increase = (ticketId) => {
+  const increase = (ticketId, available) => {
     setQuantities(prev => ({
       ...prev,
-      [ticketId]: (prev[ticketId] || 0) + 1
+      [ticketId]: Math.min((prev[ticketId] || 0) + 1, Math.max(available, 0))
     }));
   };
 
@@ -43,37 +50,46 @@ function EventDetailPage({ eventId, onBack }) {
     }));
   };
 
-  const addToCart = (ticket) => {
-    const quantity = quantities[ticket.id] || 0;
-    if (quantity === 0) return;
+  const handleAddToCart = async (ticket, stateKey) => {
+    if (!isAuthenticated() || (user?.role !== 'client' && user?.role !== 'admin')) {
+      navigate('/login');
+      return;
+    }
 
-    const newItem = {
-      id: Date.now(),
-      eventId: event.id,
-      eventTitle: event.title,
-      eventDate: event.date,
-      eventTime: event.time,
-      eventImage: event.image,
-      ticketName: ticket.name,
-      price: ticket.price,
-      quantity,
-    };
+    if (!ticket.id) {
+      setFeedback('Ce type de ticket est invalide (id manquant).');
+      return;
+    }
 
-    setCart(prev => [...prev, newItem]);
+    const quantity = quantities[stateKey] || 0;
+    const available = Math.max((ticket.quantity || 0) - (ticket.sold || 0), 0);
+    if (quantity < 1) {
+      setFeedback('Choisissez une quantité avant d\'ajouter au panier.');
+      return;
+    }
+    if (quantity > available) {
+      setFeedback('Stock insuffisant pour cette quantité.');
+      return;
+    }
 
-    // reset quantity
-    setQuantities(prev => ({ ...prev, [ticket.id]: 0 }));
+    try {
+      setAddingTicketId(stateKey);
+      await addToCart(ticket.id, quantity);
+      setFeedback(`Ajouté: ${quantity} x ${ticket.name}`);
+      setQuantities((prev) => ({ ...prev, [stateKey]: 0 }));
+    } catch (err) {
+      setFeedback(err.response?.data?.detail || 'Impossible d\'ajouter cet article au panier');
+    } finally {
+      setAddingTicketId(null);
+    }
   };
 
-  const totalPrice = cart.reduce(
-    (acc, item) => acc + item.price * item.quantity,
-    0
-  );
-
-  const totalTickets = cart.reduce(
-    (acc, item) => acc + item.quantity,
-    0
-  );
+  const ticketPrices = (event?.tickets || [])
+    .map((t) => Number(t.price))
+    .filter((p) => !Number.isNaN(p));
+  const displayedPrice = ticketPrices.length > 0
+    ? Math.min(...ticketPrices)
+    : Number(event?.price || 0);
 
   if (loading) {
     return (
@@ -113,7 +129,7 @@ function EventDetailPage({ eventId, onBack }) {
 
             {/* PRICE BADGE */}
             <div className="price-badge">
-              {event.price === 0 ? "Gratuit" : `${event.price} TND`}
+              {displayedPrice === 0 ? "Gratuit" : `A partir de ${displayedPrice} TND`}
             </div>
 
             {/* ACTION BUTTONS */}
@@ -227,96 +243,58 @@ function EventDetailPage({ eventId, onBack }) {
           <div className="ticket-section">
             <h3>Billets disponibles</h3>
 
-            {(event.tickets || []).map(ticket => (
-              <div key={ticket.id} className="ticket-card">
+            {feedback && <p className="detail-feedback">{feedback}</p>}
+
+            {(event.tickets || []).map((ticket, index) => {
+              const ticketKey = ticket.id ?? `${ticket.name}-${index}`;
+              const available = Math.max((ticket.quantity || 0) - (ticket.sold || 0), 0);
+              const selectedQty = quantities[ticketKey] || 0;
+
+              return (
+              <div key={ticketKey} className={`ticket-card ${available <= 0 ? 'sold-out' : ''}`}>
 
                 <div className="ticket-info">
                   <h4>{ticket.name}</h4>
                   <span className="ticket-price">
                     {ticket.price === 0 ? "Gratuit" : `${ticket.price} TND`}
                   </span>
+                  <small className="ticket-availability">
+                    Stock restant: {available}
+                  </small>
                 </div>
 
                 <div className="quantity-selector">
-                  <button onClick={() => decrease(ticket.id)}>-</button>
-                  <span>{quantities[ticket.id] || 0}</span>
-                  <button onClick={() => increase(ticket.id)}>+</button>
+                  <button onClick={() => decrease(ticketKey)} disabled={available <= 0}>-</button>
+                  <span>{selectedQty}</span>
+                  <button onClick={() => increase(ticketKey, available)} disabled={available <= 0}>+</button>
                 </div>
 
                 <button
                   className="btn-primary"
-                  onClick={() => addToCart(ticket)}
+                  onClick={() => handleAddToCart(ticket, ticketKey)}
+                  disabled={available <= 0 || addingTicketId === ticketKey}
                 >
-                  Ajouter
+                  {available <= 0 ? 'Rupture' : (addingTicketId === ticketKey ? 'Ajout...' : 'Ajouter')}
                 </button>
 
               </div>
-            ))}
+            )})}
+
+            {(event.tickets || []).length === 0 && (
+              <p>Aucun type de ticket n'est encore configuré pour cet événement.</p>
+            )}
           </div>
 
         </div>
       </div>
 
       {/* FLOATING CART BUTTON */}
-      {totalTickets > 0 && (
-        <div className="floating-cart" onClick={() => setShowCart(true)}>
+      {cartItemCount > 0 && (
+        <div className="floating-cart" onClick={() => navigate('/cart')}>
           🛒
-          <span className="cart-badge">{totalTickets}</span>
+          <span className="cart-badge">{cartItemCount}</span>
         </div>
       )}
-
-      {/* SIDEBAR */}
-      <div className={`cart-sidebar ${showCart ? "open" : ""}`}>
-
-        <div className="cart-header">
-          <h3>Billets ({totalTickets})</h3>
-          <button onClick={() => setShowCart(false)}>✕</button>
-        </div>
-
-        <div className="cart-content">
-          {cart.map(item => (
-            <div key={item.id} className="cart-item">
-
-              <img src={item.eventImage} alt="" />
-
-              <div className="cart-item-info">
-                <h4>{item.eventTitle}</h4>
-                <p>{item.eventDate} — {item.eventTime}</p>
-                <p>{item.ticketName}</p>
-                <p>{item.quantity} × {item.price} TND</p>
-              </div>
-
-              <button
-                className="delete-btn"
-                onClick={() =>
-                  setCart(cart.filter(c => c.id !== item.id))
-                }
-              >
-                🗑
-              </button>
-
-            </div>
-          ))}
-        </div>
-
-        <div className="cart-footer">
-          <div className="cart-total">
-            Total : {totalPrice} TND
-          </div>
-
-          <button
-            className="clear-btn"
-            onClick={() => setCart([])}
-          >
-            Vider le panier
-          </button>
-
-          <button className="checkout-btn">
-            Valider la commande
-          </button>
-        </div>
-
-      </div>
     </div>
   );
 }

@@ -64,7 +64,20 @@ def create_event(db: Session, data: EventCreate, organizer_id: int):
     payload = data.model_dump(exclude={"tickets"})
     event = Event(**payload, organizer_id=organizer_id)
 
-    for ticket_type in _build_ticket_types(data.tickets):
+    ticket_types = _build_ticket_types(data.tickets)
+
+    # Safety net: always persist at least one ticket type row for a new event,
+    # including draft saves where frontend payload may miss ticket fields.
+    if not ticket_types:
+        ticket_types = [
+            TicketType(
+                name="Standard",
+                price=float(payload.get("price") or 0),
+                quantity=int(payload.get("capacity") or 0),
+            )
+        ]
+
+    for ticket_type in ticket_types:
         event.ticket_types.append(ticket_type)
 
     db.add(event)

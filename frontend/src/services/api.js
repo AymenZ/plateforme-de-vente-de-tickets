@@ -76,4 +76,43 @@ export const eventsAPI = {
     api.delete(`/events/${id}`),
 };
 
+// ─── Ticket Types ───────────────────────────────────────────
+export const ticketTypesAPI = {
+  listByEvent: (eventId) =>
+    api.get(`/events/${eventId}/tickets/`),
+
+  create: (eventId, payload) =>
+    api.post(`/events/${eventId}/tickets/`, payload),
+
+  update: (eventId, ticketId, payload) =>
+    api.put(`/events/${eventId}/tickets/${ticketId}`, payload),
+
+  delete: (eventId, ticketId) =>
+    api.delete(`/events/${eventId}/tickets/${ticketId}`),
+};
+
+// ─── Orders / Cart ──────────────────────────────────────────
+export const ordersAPI = {
+  getCart: () =>
+    api.get('/orders/cart'),
+
+  addCartItem: (ticketTypeId, quantity) =>
+    api.post('/orders/cart/items', { ticket_type_id: ticketTypeId, quantity }),
+
+  updateCartItem: (itemId, quantity) =>
+    api.put(`/orders/cart/items/${itemId}`, { quantity }),
+
+  deleteCartItem: (itemId) =>
+    api.delete(`/orders/cart/items/${itemId}`),
+
+  checkoutCart: () =>
+    api.post('/orders/cart/checkout'),
+
+  getMyOrders: () =>
+    api.get('/orders/my'),
+
+  getOrderById: (id) =>
+    api.get(`/orders/${id}`),
+};
+
 export default api;

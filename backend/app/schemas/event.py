@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import AliasChoices, BaseModel, Field
 from typing import Optional
 
 from app.schemas.ticket_type import TicketTypeCreate, TicketTypeOut
@@ -19,7 +19,10 @@ class EventCreate(BaseModel):
     age_min: Optional[int] = 0
     extra_info: Optional[str] = None
     status: Optional[str] = "Publié"
-    tickets: Optional[list[TicketTypeCreate]] = None
+    tickets: Optional[list[TicketTypeCreate]] = Field(
+        default=None,
+        validation_alias=AliasChoices("tickets", "ticketTiers"),
+    )
 
 
 class EventUpdate(BaseModel):
@@ -37,7 +40,10 @@ class EventUpdate(BaseModel):
     age_min: Optional[int] = None
     extra_info: Optional[str] = None
     status: Optional[str] = None
-    tickets: Optional[list[TicketTypeCreate]] = None
+    tickets: Optional[list[TicketTypeCreate]] = Field(
+        default=None,
+        validation_alias=AliasChoices("tickets", "ticketTiers"),
+    )
 
 
 class EventOut(BaseModel):

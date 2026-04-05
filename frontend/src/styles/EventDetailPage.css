@@ -225,6 +225,15 @@
   margin-bottom: 1rem;
   color: var(--text-dark);
 }
+
+.detail-feedback {
+  margin-bottom: 0.8rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.9rem;
+}
 /*
 .ticket-card {
   background: var(--background);
@@ -256,6 +265,11 @@
 .ticket-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.ticket-card.sold-out {
+  opacity: 0.75;
+  border-style: dashed;
 }
 
 /****************/
@@ -296,6 +310,11 @@
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--primary-color);
+}
+
+.ticket-availability {
+  color: var(--text-light);
+  font-size: 0.82rem;
 }
 /*
 .quantity-selector {
@@ -407,6 +426,13 @@
   white-space: nowrap;
 }
 
+.ticket-card .btn-primary:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 /* FLOATING CART BUTTON */
 .floating-cart {
   position: fixed;
@@ -431,7 +457,7 @@
   transform: scale(1.1);
 }
 
-.cart-badge {
+.floating-cart .cart-badge {
   position: absolute;
   top: -5px;
   right: -5px;
