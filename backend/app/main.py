@@ -7,6 +7,7 @@ from app.routes.user_routes import router as user_router
 from app.routes.event_routes import router as event_router
 from app.routes.ticket_type_routes import router as ticket_type_router
 from app.routes.order_routes import router as order_router
+from app.routes.comment_routes import router as comment_router
 
 app = FastAPI(
     title="Event Ticket Platform API",
@@ -35,6 +36,7 @@ app.include_router(user_router)
 app.include_router(event_router)
 app.include_router(ticket_type_router)
 app.include_router(order_router)
+app.include_router(comment_router)
 
 
 @app.get("/")
