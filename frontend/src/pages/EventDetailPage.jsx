@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { eventsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import CommentsSection from '../components/CommentsSection';
 import { 
   FaArrowLeft,FaHeart,FaRegHeart,FaShareAlt,FaCalendarAlt,FaMapMarkerAlt,FaUsers,FaClock,FaTag, FaWhatsapp, FaFacebookF, FaLink
 } from "react-icons/fa";
@@ -287,6 +288,9 @@ function EventDetailPage({ eventId, onBack }) {
 
         </div>
       </div>
+
+      {/* COMMENTS SECTION */}
+      <CommentsSection />
 
       {/* FLOATING CART BUTTON */}
       {cartItemCount > 0 && (
