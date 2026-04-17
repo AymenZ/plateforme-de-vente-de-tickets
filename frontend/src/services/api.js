@@ -91,6 +91,24 @@ export const ticketTypesAPI = {
     api.delete(`/events/${eventId}/tickets/${ticketId}`),
 };
 
+// ─── Comments ───────────────────────────────────────────────
+export const commentsAPI = {
+  listByEvent: (eventId, params = {}) =>
+    api.get(`/events/${eventId}/comments`, { params }),
+
+  create: (eventId, payload) =>
+    api.post(`/events/${eventId}/comments`, payload),
+
+  listMine: (params = {}) =>
+    api.get('/users/me/comments', { params }),
+
+  update: (commentId, payload) =>
+    api.put(`/comments/${commentId}`, payload),
+
+  delete: (commentId) =>
+    api.delete(`/comments/${commentId}`),
+};
+
 // ─── Orders / Cart ──────────────────────────────────────────
 export const ordersAPI = {
   getCart: () =>

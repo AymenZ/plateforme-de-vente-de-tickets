@@ -290,7 +290,7 @@ function EventDetailPage({ eventId, onBack }) {
       </div>
 
       {/* COMMENTS SECTION */}
-      <CommentsSection />
+      <CommentsSection eventId={event.id} />
 
       {/* FLOATING CART BUTTON */}
       {cartItemCount > 0 && (

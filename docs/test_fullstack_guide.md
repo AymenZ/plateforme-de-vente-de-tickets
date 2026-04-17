@@ -63,6 +63,12 @@ cd backend
 uvicorn app.main:app --reload
 ```
 
+Alternative si vous restez à la racine du projet :
+
+```bash
+uvicorn app.main:app --reload --app-dir backend
+```
+
 Le backend tourne sur **http://localhost:8000**.  
 Docs Swagger : **http://localhost:8000/docs**
 
@@ -203,6 +209,8 @@ Le frontend tourne sur **http://localhost:5173**.
 | **"Network Error"** | Vérifier que les deux serveurs sont lancés (backend sur 8000, frontend sur 5173) |
 | **"Rôle introuvable"** lors du seed | Lancer `python seed_roles.py` **avant** `python seed_users.py` |
 | **Module not found** | Vérifier que vous êtes dans le dossier `backend/` quand vous exécutez les scripts Python |
+| **No module named `app`** au lancement Uvicorn | Depuis `backend/` : `uvicorn app.main:app --reload` ; ou depuis la racine : `uvicorn app.main:app --reload --app-dir backend` |
+| **Form data requires "python-multipart" to be installed** | Installer les dépendances backend dans l'environnement actif : `pip install -r backend/requirements.txt` |
 | **503 Service commentaires indisponible** | Vérifier que MongoDB est démarré (`Start-Service MongoDB`) et que `MONGODB_URL` pointe sur `mongodb://localhost:27017` |
 | **No module named bson** | Réinstaller les dépendances backend : `pip install -r requirements.txt` |
 
