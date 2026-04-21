@@ -339,6 +339,40 @@
   color: #334155;
 }
 
+.admin-comment-row-hidden {
+  background: #f8fafc;
+}
+
+.comment-visibility-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.comment-visibility-badge.visible {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.comment-visibility-badge.hidden-ai {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.comment-visibility-badge.hidden-admin {
+  background: rgba(14, 116, 144, 0.15);
+  color: #0f766e;
+}
+
+.comment-visibility-badge.hidden-unknown {
+  background: rgba(148, 163, 184, 0.2);
+  color: #475569;
+}
+
 /* Empty state */
 .empty-state {
   text-align: center;

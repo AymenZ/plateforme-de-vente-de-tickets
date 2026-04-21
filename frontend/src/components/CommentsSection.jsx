@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   FaCheckCircle,
   FaCommentDots,
+  FaEye,
+  FaEyeSlash,
   FaEdit,
   FaExclamationCircle,
   FaSpinner,
@@ -97,6 +99,7 @@ function StarRating({
 
 function CommentsSection({ eventId }) {
   const { isAuthenticated, user } = useAuth();
+  const isAdminViewer = user?.role === 'admin';
 
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -186,9 +189,14 @@ function CommentsSection({ eventId }) {
     return error?.response?.data?.detail || fallback;
   };
 
-  const canManageComment = (comment) => {
+  const canEditComment = (comment) => {
     if (!isAuthenticated() || !user) return false;
-    return comment.user_id === user.id || user.role === 'admin';
+    return comment.user_id === user.id;
+  };
+
+  const canDeleteComment = (comment) => {
+    if (!isAuthenticated() || !user) return false;
+    return comment.user_id === user.id || isAdminViewer;
   };
 
   const resetNewCommentForm = () => {
@@ -217,12 +225,24 @@ function CommentsSection({ eventId }) {
         content: cleanedContent,
       });
 
-      setComments((prev) => [response.data, ...prev]);
+      const createdComment = response?.data;
       resetNewCommentForm();
-      setFlashMessage({
-        type: 'success',
-        text: 'Votre avis a bien été publié.',
-      });
+
+      await fetchComments(false);
+
+      if (createdComment?.is_hidden) {
+        setFlashMessage({
+          type: 'success',
+          text: isAdminViewer
+            ? 'Commentaire publié et masqué automatiquement par la modération.'
+            : 'Commentaire enregistré. Il a été masqué automatiquement par la modération.',
+        });
+      } else {
+        setFlashMessage({
+          type: 'success',
+          text: 'Votre avis a bien été publié.',
+        });
+      }
     } catch (error) {
       setFlashMessage({
         type: 'error',
@@ -302,6 +322,28 @@ function CommentsSection({ eventId }) {
       setFlashMessage({
         type: 'error',
         text: extractErrorMessage(error, 'Impossible de supprimer le commentaire.'),
+      });
+    } finally {
+      setBusyCommentId(null);
+    }
+  };
+
+  const handleToggleHide = async (comment) => {
+    setBusyCommentId(comment.id);
+
+    try {
+      const response = await commentsAPI.toggleHide(comment.id);
+      const updated = response?.data;
+
+      setComments((prev) => prev.map((item) => (item.id === comment.id ? updated : item)));
+      setFlashMessage({
+        type: 'success',
+        text: updated?.is_hidden ? 'Commentaire masqué.' : 'Commentaire à nouveau visible.',
+      });
+    } catch (error) {
+      setFlashMessage({
+        type: 'error',
+        text: extractErrorMessage(error, 'Impossible de changer la visibilité du commentaire.'),
       });
     } finally {
       setBusyCommentId(null);
@@ -441,12 +483,14 @@ function CommentsSection({ eventId }) {
         ) : (
           sortedComments.map((comment, index) => {
             const isEditingThis = editingId === comment.id;
-            const canManage = canManageComment(comment);
+            const canEdit = canEditComment(comment);
+            const canDelete = canDeleteComment(comment);
+            const canToggleHidden = isAdminViewer;
 
             return (
               <article
                 key={comment.id}
-                className={`comment-card ${isEditingThis ? 'is-editing' : ''}`}
+                className={`comment-card ${isEditingThis ? 'is-editing' : ''} ${comment.is_hidden ? 'is-hidden' : ''}`}
                 style={{ animationDelay: `${index * 40}ms` }}
               >
                 <div className="comment-avatar">{getInitials(comment.user_email)}</div>
@@ -454,7 +498,11 @@ function CommentsSection({ eventId }) {
                 <div className="comment-content-block">
                   <header className="comment-top-row">
                     <div>
-                      <p className="comment-author">{getDisplayName(comment.user_email)}</p>
+                      <div className="comment-author-line">
+                        <p className="comment-author">{getDisplayName(comment.user_email)}</p>
+                        {comment.is_admin_author && <span className="comment-badge admin">Admin</span>}
+                        {comment.is_hidden && isAdminViewer && <span className="comment-badge hidden">Masque</span>}
+                      </div>
                       <p className="comment-meta">
                         {formatDate(comment.created_at)}
                         {comment.is_edited && comment.updated_at ? ` • modifié ${formatDate(comment.updated_at)}` : ''}
@@ -505,30 +553,53 @@ function CommentsSection({ eventId }) {
                     </div>
                   ) : (
                     <>
-                      <p className="comment-text">{comment.content}</p>
+                      <p className={`comment-text ${comment.is_hidden ? 'hidden' : ''}`}>{comment.content}</p>
 
-                      {canManage && (
+                      {(canEdit || canDelete || canToggleHidden) && (
                         <div className="comment-action-row">
-                          <button type="button" className="btn-link-action" onClick={() => startEditing(comment)}>
-                            <FaEdit /> Modifier
-                          </button>
+                          {canEdit && (
+                            <button type="button" className="btn-link-action" onClick={() => startEditing(comment)}>
+                              <FaEdit /> Modifier
+                            </button>
+                          )}
 
-                          <button
-                            type="button"
-                            className="btn-link-action danger"
-                            onClick={() => handleDelete(comment.id)}
-                            disabled={busyCommentId === comment.id}
-                          >
-                            {busyCommentId === comment.id ? (
-                              <>
-                                <FaSpinner className="spin" /> Suppression...
-                              </>
-                            ) : (
-                              <>
-                                <FaTrash /> Supprimer
-                              </>
-                            )}
-                          </button>
+                          {canToggleHidden && (
+                            <button
+                              type="button"
+                              className="btn-link-action hide"
+                              onClick={() => handleToggleHide(comment)}
+                              disabled={busyCommentId === comment.id}
+                            >
+                              {busyCommentId === comment.id ? (
+                                <>
+                                  <FaSpinner className="spin" /> Traitement...
+                                </>
+                              ) : (
+                                <>
+                                  {comment.is_hidden ? <FaEye /> : <FaEyeSlash />} {comment.is_hidden ? 'Afficher' : 'Masquer'}
+                                </>
+                              )}
+                            </button>
+                          )}
+
+                          {canDelete && (
+                            <button
+                              type="button"
+                              className="btn-link-action danger"
+                              onClick={() => handleDelete(comment.id)}
+                              disabled={busyCommentId === comment.id}
+                            >
+                              {busyCommentId === comment.id ? (
+                                <>
+                                  <FaSpinner className="spin" /> Suppression...
+                                </>
+                              ) : (
+                                <>
+                                  <FaTrash /> Supprimer
+                                </>
+                              )}
+                            </button>
+                          )}
                         </div>
                       )}
                     </>

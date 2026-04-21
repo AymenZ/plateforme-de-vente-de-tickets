@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
-import { eventsAPI, ticketTypesAPI } from "../services/api";
+import { commentsAPI, eventsAPI, ticketTypesAPI } from "../services/api";
 import { 
   FaCheckCircle, FaClock, FaRegFile, FaTimes, FaChartLine, FaPlus, FaSearch, FaCalendarAlt, FaTicketAlt,
   FaCalendarDay, FaHourglassHalf, FaChartBar, FaEdit, FaTrash, FaMapMarkerAlt,
-  FaMoneyBillWave, FaCommentDots, FaStar
+  FaMoneyBillWave, FaCommentDots, FaStar, FaEye
 } from "react-icons/fa";
 import "../styles/dashboard.css";
 import CreateEventForm from "./CreateEventForm";
@@ -22,6 +22,10 @@ function OrganizerDashboard() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [dashboardStats, setDashboardStats] = useState(null);
+  const [previewEventId, setPreviewEventId] = useState(null);
+  const [previewLoadingId, setPreviewLoadingId] = useState(null);
+  const [previewCommentsByEvent, setPreviewCommentsByEvent] = useState({});
+  const [previewErrorsByEvent, setPreviewErrorsByEvent] = useState({});
 
   const eventStatsById = useMemo(() => {
     const map = new Map();
@@ -35,6 +39,7 @@ function OrganizerDashboard() {
     "Publié": { icon: <FaClock color="#3498db" />, label: "Publié" },
     "Brouillon": { icon: <FaRegFile color="#f1c40f" />, label: "Brouillon" },
     "Terminé": { icon: <FaCheckCircle color="#2ecc71" />, label: "Terminé" },
+    "Dépublié": { icon: <FaTimes color="#dc2626" />, label: "Dépublié" },
   };
 
   const getDisplayStatusLabel = (rawStatus = "", eventDate = "") => {
@@ -57,6 +62,9 @@ function OrganizerDashboard() {
 
     if (normalized === "draft" || normalized === "brouillon") return "Brouillon";
     if (normalized === "finished" || normalized === "termine") return "Terminé";
+    if (normalized === "depublished" || normalized === "depublie" || normalized === "unpublished") {
+      return "Dépublié";
+    }
 
     return String(rawStatus || "Brouillon");
   };
@@ -187,25 +195,45 @@ function OrganizerDashboard() {
     }
   }, [authLoading, user]);
 
-  // ── Guards (AFTER all hooks) ──
-  if (authLoading) {
-    return (
-      <div className="dashboard-container">
-        <p style={{ textAlign: "center", padding: "2rem" }}>Chargement...</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (previewEventId === null) return;
+    const stillExists = events.some((event) => Number(event.id) === Number(previewEventId));
+    if (!stillExists) {
+      setPreviewEventId(null);
+    }
+  }, [events, previewEventId]);
 
-  if (user?.role !== "organizer") {
-    return (
-      <div className="dashboard-container">
-        <div className="empty-state">
-          <h2>Accès refusé</h2>
-          <p>Vous devez être organisateur pour accéder à cette page.</p>
-        </div>
-      </div>
-    );
-  }
+  const renderCommentStars = (rating) => {
+    const safeRating = Math.max(0, Math.min(5, Number(rating) || 0));
+    return `${"★".repeat(safeRating)}${"☆".repeat(5 - safeRating)}`;
+  };
+
+  const handleTogglePreview = async (eventId) => {
+    if (previewEventId === eventId) {
+      setPreviewEventId(null);
+      return;
+    }
+
+    setPreviewEventId(eventId);
+
+    if (previewCommentsByEvent[eventId] || previewLoadingId === eventId) {
+      return;
+    }
+
+    setPreviewLoadingId(eventId);
+    setPreviewErrorsByEvent((prev) => ({ ...prev, [eventId]: "" }));
+
+    try {
+      const response = await commentsAPI.listByEvent(eventId, { limit: 50, skip: 0 });
+      const comments = Array.isArray(response?.data) ? response.data : [];
+      setPreviewCommentsByEvent((prev) => ({ ...prev, [eventId]: comments }));
+    } catch (err) {
+      const detail = err.response?.data?.detail || "Impossible de charger les commentaires pour cet événement.";
+      setPreviewErrorsByEvent((prev) => ({ ...prev, [eventId]: detail }));
+    } finally {
+      setPreviewLoadingId((current) => (current === eventId ? null : current));
+    }
+  };
 
   // ── Stats summary ──
   const summary = dashboardStats?.summary || {};
@@ -217,14 +245,16 @@ function OrganizerDashboard() {
       if (displayStatus === "Publié") acc.published += 1;
       else if (displayStatus === "Brouillon") acc.draft += 1;
       else if (displayStatus === "Terminé") acc.finished += 1;
+      else if (displayStatus === "Dépublié") acc.depublished += 1;
       return acc;
     },
-    { published: 0, draft: 0, finished: 0 }
+    { published: 0, draft: 0, finished: 0, depublished: 0 }
   );
 
   const publishedCount = localStatusCounts.published;
   const draftCount = localStatusCounts.draft;
   const finishedCount = localStatusCounts.finished;
+  const depublishedCount = localStatusCounts.depublished;
   const totalRevenue = Number(summary.total_revenue || 0);
   const totalTicketsSold = Number(summary.total_tickets_sold || 0);
   const totalComments = Number(summary.total_comments || 0);
@@ -376,7 +406,28 @@ function OrganizerDashboard() {
     "Publié": publishedCount,
     "Brouillon": draftCount,
     "Terminé": finishedCount,
+    "Dépublié": depublishedCount,
   };
+
+  // ── Guards (AFTER all hooks) ──
+  if (authLoading) {
+    return (
+      <div className="dashboard-container">
+        <p style={{ textAlign: "center", padding: "2rem" }}>Chargement...</p>
+      </div>
+    );
+  }
+
+  if (user?.role !== "organizer") {
+    return (
+      <div className="dashboard-container">
+        <div className="empty-state">
+          <h2>Accès refusé</h2>
+          <p>Vous devez être organisateur pour accéder à cette page.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -433,6 +484,12 @@ function OrganizerDashboard() {
             <FaClock /> Terminés
           </h3>
           <p>{finishedCount}</p>
+        </div>
+        <div className="stat-card orgd-kpi-card">
+          <h3>
+            <FaTimes /> Dépubliés
+          </h3>
+          <p>{depublishedCount}</p>
         </div>
         <div className="stat-card orgd-kpi-card accent-money">
           <h3>
@@ -572,7 +629,7 @@ function OrganizerDashboard() {
           <div className="events-table orgd-events-table">
             {filteredEvents.map((event) => {
               const tickets = event.tickets || [];
-              const prices = tickets.map(t => Number(t.price)).filter(p => !isNaN(p));
+              const prices = tickets.map((t) => Number(t.price)).filter((p) => !isNaN(p));
               const lowestPrice = prices.length > 0 ? Math.min(...prices) : (event.price || 0);
               const isFree = lowestPrice === 0;
               const displayStatus = getDisplayStatusLabel(event.status, event.date);
@@ -582,49 +639,105 @@ function OrganizerDashboard() {
               const eventComments = Number(eventStats?.comments_count || 0);
               const eventRevenue = Number(eventStats?.revenue || 0);
               const eventRating = eventStats?.average_rating;
+              const isDepublished = statusClass === "depublie" || statusClass === "depublished";
+              const isPreviewOpen = Number(previewEventId) === Number(event.id);
+              const previewComments = previewCommentsByEvent[event.id] || [];
+              const previewError = previewErrorsByEvent[event.id];
+              const previewLoading = Number(previewLoadingId) === Number(event.id);
 
               return (
-<div key={event.id} className={`event-card-row orgd-event-row border-${statusClass}`}>
-  <div className="ecr-thumb">
-    {event.image ? (
-      <img src={event.image} alt={event.title} />
-    ) : (
-      <div className="ecr-thumb-placeholder"><FaCalendarAlt /></div>
-    )}
-    <span className={`ecr-badge badge-${statusClass}`}>
-      {statusIcons[displayStatus]?.icon} {displayStatus}
-    </span>
-  </div>
+                <React.Fragment key={event.id}>
+                  <div className={`event-card-row orgd-event-row border-${statusClass}`}>
+                    <div className="ecr-thumb">
+                      {event.image ? (
+                        <img src={event.image} alt={event.title} />
+                      ) : (
+                        <div className="ecr-thumb-placeholder"><FaCalendarAlt /></div>
+                      )}
+                      <span className={`ecr-badge badge-${statusClass}`}>
+                        {statusIcons[displayStatus]?.icon} {displayStatus}
+                      </span>
+                    </div>
 
-  <div className="ecr-body">
-    <h4 className="ecr-title">{event.title}</h4>
-    <div className="ecr-meta">
-      <span><FaCalendarAlt /> {event.date}</span>
-      <span><FaClock /> {event.time}</span>
-      {event.location && <span><FaMapMarkerAlt /> {event.location}</span>}
-    </div>
-    <div className="ecr-tags">
-      {event.category && <span className="ecr-tag">{event.category}</span>}
-      <span className="ecr-tag"><FaTicketAlt /> Capacité {event.capacity || 0}</span>
-      <span className={`ecr-tag ${isFree ? "ecr-tag-free" : "ecr-tag-price"}`}>
-        {isFree ? "Gratuit" : `À partir de ${lowestPrice} TND`}
-      </span>
-      <span className="ecr-tag ecr-tag-revenue"><FaMoneyBillWave /> {formatCurrency(eventRevenue, summaryCurrency)}</span>
-      <span className="ecr-tag"><FaTicketAlt /> {soldTickets} vendus</span>
-      <span className="ecr-tag"><FaCommentDots /> {eventComments} avis</span>
-      <span className="ecr-tag"><FaStar /> {formatRating(eventRating)}</span>
-    </div>
-  </div>
+                    <div className="ecr-body">
+                      <h4 className="ecr-title">{event.title}</h4>
+                      <div className="ecr-meta">
+                        <span><FaCalendarAlt /> {event.date}</span>
+                        <span><FaClock /> {event.time}</span>
+                        {event.location && <span><FaMapMarkerAlt /> {event.location}</span>}
+                      </div>
+                      <div className="ecr-tags">
+                        {event.category && <span className="ecr-tag">{event.category}</span>}
+                        <span className="ecr-tag"><FaTicketAlt /> Capacité {event.capacity || 0}</span>
+                        <span className={`ecr-tag ${isFree ? "ecr-tag-free" : "ecr-tag-price"}`}>
+                          {isFree ? "Gratuit" : `À partir de ${lowestPrice} TND`}
+                        </span>
+                        <span className="ecr-tag ecr-tag-revenue"><FaMoneyBillWave /> {formatCurrency(eventRevenue, summaryCurrency)}</span>
+                        <span className="ecr-tag"><FaTicketAlt /> {soldTickets} vendus</span>
+                        <span className="ecr-tag"><FaCommentDots /> {eventComments} avis</span>
+                        <span className="ecr-tag"><FaStar /> {formatRating(eventRating)}</span>
+                      </div>
+                    </div>
 
-  <div className="ecr-actions">
-    <button className="ecr-btn ecr-btn-edit" title="Modifier" onClick={() => handleUpdateEvent(event)}>
-      <FaEdit />
-    </button>
-    <button className="ecr-btn ecr-btn-delete" title="Supprimer" onClick={() => handleDeleteEvent(event.id)}>
-      <FaTrash />
-    </button>
-  </div>
-</div>
+                    <div className="ecr-actions">
+                      <button
+                        className={`ecr-btn ecr-btn-preview ${isPreviewOpen ? "active" : ""}`}
+                        title={isPreviewOpen ? "Fermer l'aperçu" : "Aperçu et commentaires"}
+                        onClick={() => handleTogglePreview(event.id)}
+                      >
+                        <FaEye />
+                      </button>
+                      <button
+                        className={`ecr-btn ecr-btn-edit ${isDepublished ? "ecr-btn-disabled" : ""}`}
+                        title={isDepublished ? "Édition désactivée pour un événement dépublié" : "Modifier"}
+                        onClick={() => !isDepublished && handleUpdateEvent(event)}
+                        disabled={isDepublished}
+                      >
+                        <FaEdit />
+                      </button>
+                      <button className="ecr-btn ecr-btn-delete" title="Supprimer" onClick={() => handleDeleteEvent(event.id)}>
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </div>
+
+                  {isPreviewOpen && (
+                    <div className="orgd-preview-panel">
+                      <div className="orgd-preview-event">
+                        <h4>Aperçu</h4>
+                        <p>{event.description || "Aucune description disponible pour cet événement."}</p>
+                      </div>
+
+                      <div className="orgd-preview-comments">
+                        <h4>Commentaires</h4>
+
+                        {previewLoading && <p className="orgd-preview-empty">Chargement des commentaires...</p>}
+
+                        {!previewLoading && previewError && (
+                          <p className="orgd-preview-error">{previewError}</p>
+                        )}
+
+                        {!previewLoading && !previewError && previewComments.length === 0 && (
+                          <p className="orgd-preview-empty">Aucun commentaire pour cet événement.</p>
+                        )}
+
+                        {!previewLoading && !previewError && previewComments.length > 0 && (
+                          <ul className="orgd-comment-list">
+                            {previewComments.map((comment) => (
+                              <li key={comment.id} className="orgd-comment-item">
+                                <div className="orgd-comment-head">
+                                  <span className="orgd-comment-author">{comment.user_email || "Utilisateur"}</span>
+                                  <span className="orgd-comment-rating">{renderCommentStars(comment.rating)}</span>
+                                </div>
+                                <p className="orgd-comment-content">{comment.content}</p>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
               );
             })}
           </div>

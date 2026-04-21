@@ -122,12 +122,7 @@ function Navigation() {
               )}
             </button>
 
-            <button className="nav-icon-btn">
-              <FaRegHeart />
-              {likesCount > 0 && (
-                <span className="likes-badge">{likesCount}</span>
-              )}
-            </button>
+
 
             <div className="nav-profile">
               <button
@@ -141,10 +136,6 @@ function Navigation() {
                 <div className="nav-dropdown">
                   <button className="dropdown-item" onClick={openProfile}>
                     <FaUser /> Mon Profil
-                  </button>
-
-                  <button className="dropdown-item" onClick={openReservations}>
-                    <FaTicketAlt /> Mes Réservations
                   </button>
 
                   <hr className="dropdown-divider" />

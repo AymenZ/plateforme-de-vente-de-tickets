@@ -117,6 +117,9 @@ export const commentsAPI = {
   update: (commentId, payload) =>
     api.put(`/comments/${commentId}`, payload),
 
+  toggleHide: (commentId) =>
+    api.put(`/comments/${commentId}/hide`),
+
   delete: (commentId) =>
     api.delete(`/comments/${commentId}`),
 };

@@ -111,6 +111,29 @@ function AdminPage() {
     return `${text.slice(0, maxLen)}...`;
   };
 
+  const commentVisibilityLabel = (comment) => {
+    if (!comment?.is_hidden) {
+      return { text: 'Visible', className: 'visible' };
+    }
+
+    const hiddenBy = String(comment?.hidden_by || '').toUpperCase();
+    const hiddenReason = String(comment?.hidden_reason || '').toLowerCase();
+
+    if (hiddenBy === 'AI' && hiddenReason === 'offensive_language') {
+      return { text: 'Masqué par IA (langage offensant)', className: 'hidden-ai' };
+    }
+
+    if (hiddenBy === 'ADMIN') {
+      return { text: 'Masqué par admin', className: 'hidden-admin' };
+    }
+
+    if (hiddenBy === 'AI') {
+      return { text: 'Masqué par IA', className: 'hidden-ai' };
+    }
+
+    return { text: 'Masqué', className: 'hidden-unknown' };
+  };
+
   const fetchAdminData = async () => {
     setLoading(true);
     setErrorMsg('');
@@ -547,46 +570,56 @@ function AdminPage() {
                   <th>Note</th>
                   <th>Extrait</th>
                   <th>Date</th>
+                  <th>Visibilité</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredComments.length > 0 ? (
-                  filteredComments.map((comment) => (
-                    <tr key={comment.id}>
-                      <td>
-                        <span className="mongo-id" title={comment.id}>
-                          {String(comment.id).slice(0, 10)}...
-                        </span>
-                      </td>
-                      <td>{comment.author_email}</td>
-                      <td>{comment.event_title}</td>
-                      <td>
-                        <span className="rating-stars" title={`${comment.rating}/5`}>
-                          {renderStars(comment.rating)}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="comment-excerpt" title={comment.content}>
-                          {excerpt(comment.content)}
-                        </span>
-                      </td>
-                      <td>{formatDate(comment.created_at)}</td>
-                      <td>
-                        <div className="table-actions">
-                          <button
-                            className="btn-action btn-delete"
-                            onClick={() => deleteComment(comment)}
-                          >
-                            <FaTrash /> Supprimer
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  filteredComments.map((comment) => {
+                    const visibility = commentVisibilityLabel(comment);
+
+                    return (
+                      <tr key={comment.id} className={comment?.is_hidden ? 'admin-comment-row-hidden' : ''}>
+                        <td>
+                          <span className="mongo-id" title={comment.id}>
+                            {String(comment.id).slice(0, 10)}...
+                          </span>
+                        </td>
+                        <td>{comment.author_email}</td>
+                        <td>{comment.event_title}</td>
+                        <td>
+                          <span className="rating-stars" title={`${comment.rating}/5`}>
+                            {renderStars(comment.rating)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="comment-excerpt" title={comment.content}>
+                            {excerpt(comment.content)}
+                          </span>
+                        </td>
+                        <td>{formatDate(comment.created_at)}</td>
+                        <td>
+                          <span className={`comment-visibility-badge ${visibility.className}`}>
+                            {visibility.text}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="table-actions">
+                            <button
+                              className="btn-action btn-delete"
+                              onClick={() => deleteComment(comment)}
+                            >
+                              <FaTrash /> Supprimer
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td colSpan="7" className="empty-state">
+                    <td colSpan="8" className="empty-state">
                       Aucun commentaire trouvé.
                     </td>
                   </tr>

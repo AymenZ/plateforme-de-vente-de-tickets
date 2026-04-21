@@ -23,6 +23,10 @@ class CommentOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     is_edited: bool
+    is_hidden: bool = False
+    is_admin_author: bool = False
+    hidden_by: str | None = None
+    hidden_reason: str | None = None
 
 
 class AdminCommentOut(BaseModel):
@@ -33,3 +37,6 @@ class AdminCommentOut(BaseModel):
     rating: int
     content: str
     created_at: datetime
+    is_hidden: bool = False
+    hidden_by: str | None = None
+    hidden_reason: str | None = None

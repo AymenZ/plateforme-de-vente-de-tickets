@@ -514,6 +514,7 @@
 .event-card-row.border-publie  { border-left-color: #3b82f6; }
 .event-card-row.border-brouillon { border-left-color: #f59e0b; }
 .event-card-row.border-termine { border-left-color: #10b981; }
+.event-card-row.border-depublie { border-left-color: #dc2626; }
 
 /* Thumbnail */
 .ecr-thumb {
@@ -576,6 +577,11 @@
 .badge-termine {
   background: rgba(16, 185, 129, 0.15);
   color: #059669;
+}
+
+.badge-depublie {
+  background: rgba(220, 38, 38, 0.14);
+  color: #b91c1c;
 }
 
 /* Body */
@@ -678,6 +684,17 @@
   color: #fff;
 }
 
+.ecr-btn-preview {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.ecr-btn-preview:hover,
+.ecr-btn-preview.active {
+  background: #2563eb;
+  color: #fff;
+}
+
 .ecr-btn-delete {
   background: #fee2e2;
   color: #dc2626;
@@ -686,6 +703,102 @@
 .ecr-btn-delete:hover {
   background: #ef4444;
   color: #fff;
+}
+
+.ecr-btn-disabled,
+.ecr-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
+
+.orgd-preview-panel {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 14px;
+  padding: 14px;
+  margin-top: -4px;
+  margin-bottom: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0 0 12px 12px;
+}
+
+.orgd-preview-event,
+.orgd-preview-comments {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.orgd-preview-event h4,
+.orgd-preview-comments h4 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.orgd-preview-event p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.orgd-preview-empty {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+.orgd-preview-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.88rem;
+}
+
+.orgd-comment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.orgd-comment-item {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.orgd-comment-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.orgd-comment-author {
+  font-size: 0.84rem;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.orgd-comment-rating {
+  font-size: 0.8rem;
+  color: #f59e0b;
+}
+
+.orgd-comment-content {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #334155;
+  line-height: 1.4;
 }
 
 /* ============= RESPONSIVE EVENT CARDS ============= */
@@ -700,6 +813,10 @@
   .ecr-actions {
     flex-direction: row;
     padding: 0 14px 14px;
+  }
+
+  .orgd-preview-panel {
+    grid-template-columns: 1fr;
   }
 }
 
