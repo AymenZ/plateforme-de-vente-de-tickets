@@ -1,6 +1,6 @@
-# Guide de test — Liaison Frontend ↔ Backend (Utilisateurs)
+# Guide de test — Liaison Frontend ↔ Backend (Utilisateurs + Commentaires MongoDB)
 
-Ce guide explique comment vérifier que l'authentification et la gestion des utilisateurs fonctionnent de bout en bout.
+Ce guide explique comment vérifier que l'authentification, la gestion des utilisateurs et le module commentaires (stocké dans MongoDB) fonctionnent de bout en bout.
 
 ---
 
@@ -9,12 +9,13 @@ Ce guide explique comment vérifier que l'authentification et la gestion des uti
 | Élément | Détail |
 |---------|--------|
 | **MySQL** | Serveur actif, base `eventdb` créée (`CREATE DATABASE IF NOT EXISTS eventdb;`) |
+| **MongoDB** | Service MongoDB actif sur `localhost:27017` (base utilisée: `eventdb_comments`) |
 | **Python** | 3.10+ avec les dépendances installées (`pip install -r requirements.txt`) |
 | **Node.js** | 18+ avec les dépendances installées (`cd frontend && npm install`) |
 
 ---
 
-## 2. Préparer la base de données
+## 2. Préparer les données (MySQL + MongoDB)
 
 Depuis le dossier **`backend/`** :
 
@@ -35,6 +36,20 @@ python seed_users.py
 | `client@eventhub.tn` | `test123` | CLIENT |
 | `client2@eventhub.tn` | `test123` | CLIENT |
 
+### Vérifier MongoDB local
+
+Depuis un terminal PowerShell :
+
+```powershell
+Start-Service MongoDB
+Get-Service MongoDB
+Test-NetConnection localhost -Port 27017
+```
+
+Résultat attendu :
+- Service `MongoDB` en `Running`
+- Port `27017` accessible
+
 ---
 
 ## 3. Démarrer les serveurs
@@ -46,6 +61,12 @@ Ouvrir **deux terminaux** :
 ```bash
 cd backend
 uvicorn app.main:app --reload
+```
+
+Alternative si vous restez à la racine du projet :
+
+```bash
+uvicorn app.main:app --reload --app-dir backend
 ```
 
 Le backend tourne sur **http://localhost:8000**.  
@@ -108,6 +129,75 @@ Le frontend tourne sur **http://localhost:5173**.
    - Le badge de rôle se met à jour dans le tableau
    - Se déconnecter, se reconnecter avec `client2@eventhub.tn` → le rôle affiché est **organizer**
 
+### 4.6. Swagger — Auth OAuth2 (pour routes commentaires)
+
+1. Ouvrir **http://localhost:8000/docs**
+2. Cliquer sur **Authorize**
+3. Dans `OAuth2PasswordBearer`, saisir :
+   - `username` = email (ex. `client@eventhub.tn`)
+   - `password` = mot de passe (ex. `test123`)
+4. Cliquer **Authorize**, puis **Close**
+5. ✅ Vérifier :
+   - Les routes protégées n'affichent plus `401 Unauthorized`
+
+### 4.7. Commentaires — Créer un commentaire
+
+1. Dans Swagger, ouvrir `POST /events/{event_id}/comments`
+2. Utiliser un `event_id` existant (ex. `5`)
+3. Body :
+
+```json
+{
+  "rating": 5,
+  "content": "Excellent evenement, organisation au top"
+}
+```
+
+4. ✅ Vérifier :
+   - Status `201`
+   - Retour avec `id`, `event_id`, `user_id`, `rating`, `content`, `created_at`
+
+### 4.8. Commentaires — Lister et modifier
+
+1. Tester `GET /events/{event_id}/comments`
+2. Tester `GET /users/me/comments`
+3. Copier un `comment_id`, puis appeler `PUT /comments/{comment_id}` avec :
+
+```json
+{
+  "rating": 4,
+  "content": "Update: tres bon evenement, quelques retards au debut"
+}
+```
+
+4. ✅ Vérifier :
+   - Status `200`
+   - `is_edited: true`
+   - `updated_at` mis à jour
+
+### 4.9. Commentaires — Supprimer
+
+1. Appeler `DELETE /comments/{comment_id}`
+2. ✅ Vérifier :
+   - Status `200`
+   - Message de succès
+
+### 4.10. Vérification MongoDB Compass
+
+1. Ouvrir MongoDB Compass
+2. Se connecter à `mongodb://localhost:27017`
+3. Ouvrir la base `eventdb_comments`, puis la collection `comments`
+4. Filtre conseillé :
+
+```json
+{ "event_id": 5 }
+```
+
+5. ✅ Vérifier :
+   - Les commentaires créés via API sont visibles
+   - Les champs `created_at`, `updated_at`, `is_edited` sont cohérents
+   - Le document disparaît après suppression API
+
 ---
 
 ## 5. Dépannage
@@ -119,6 +209,10 @@ Le frontend tourne sur **http://localhost:5173**.
 | **"Network Error"** | Vérifier que les deux serveurs sont lancés (backend sur 8000, frontend sur 5173) |
 | **"Rôle introuvable"** lors du seed | Lancer `python seed_roles.py` **avant** `python seed_users.py` |
 | **Module not found** | Vérifier que vous êtes dans le dossier `backend/` quand vous exécutez les scripts Python |
+| **No module named `app`** au lancement Uvicorn | Depuis `backend/` : `uvicorn app.main:app --reload` ; ou depuis la racine : `uvicorn app.main:app --reload --app-dir backend` |
+| **Form data requires "python-multipart" to be installed** | Installer les dépendances backend dans l'environnement actif : `pip install -r backend/requirements.txt` |
+| **503 Service commentaires indisponible** | Vérifier que MongoDB est démarré (`Start-Service MongoDB`) et que `MONGODB_URL` pointe sur `mongodb://localhost:27017` |
+| **No module named bson** | Réinstaller les dépendances backend : `pip install -r requirements.txt` |
 
 ---
 
@@ -139,6 +233,19 @@ curl http://localhost:8000/users/me \
 # Lister tous les utilisateurs (admin)
 curl http://localhost:8000/users/ \
   -H "Authorization: Bearer <VOTRE_TOKEN>"
+
+# Créer un commentaire
+curl -X POST http://localhost:8000/events/5/comments \
+   -H "Authorization: Bearer <VOTRE_TOKEN>" \
+   -H "Content-Type: application/json" \
+   -d '{"rating":5,"content":"Commentaire via curl"}'
+
+# Lister les commentaires d'un événement
+curl http://localhost:8000/events/5/comments
+
+# Lister mes commentaires
+curl http://localhost:8000/users/me/comments \
+   -H "Authorization: Bearer <VOTRE_TOKEN>"
 ```
 
 ---
@@ -154,3 +261,4 @@ curl http://localhost:8000/users/ \
 | Register | http://localhost:5173/register |
 | Admin | http://localhost:5173/admin |
 | Catalogue | http://localhost:5173/ |
+| MongoDB URI (local) | mongodb://localhost:27017 |

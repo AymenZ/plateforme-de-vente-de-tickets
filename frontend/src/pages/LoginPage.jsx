@@ -46,7 +46,7 @@ function LoginPage() {
 
         <div className="auth-header">
           <h1>Connexion</h1>
-          <p>Accédez à votre compte EventHub</p>
+          <p>Accédez à votre compte Eventi</p>
         </div>
 
         {error && <div className="auth-error">{error}</div>}

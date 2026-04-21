@@ -1,10 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
-from app.models import user, role, event
+from app.models import user, role, event, ticket_type, order, order_item, ticket
 from app.routes.auth_routes import router as auth_router
 from app.routes.user_routes import router as user_router
 from app.routes.event_routes import router as event_router
+from app.routes.ticket_type_routes import router as ticket_type_router
+from app.routes.order_routes import router as order_router
+from app.routes.comment_routes import router as comment_router
+from app.routes.payment_routes import router as payment_router
+from app.routes.ticket_routes import router as ticket_router
 
 app = FastAPI(
     title="Event Ticket Platform API",
@@ -31,6 +36,11 @@ Base.metadata.create_all(bind=engine)
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(event_router)
+app.include_router(ticket_type_router)
+app.include_router(order_router)
+app.include_router(comment_router)
+app.include_router(payment_router)
+app.include_router(ticket_router)
 
 
 @app.get("/")

@@ -13,14 +13,46 @@ function CatalogPage({ onEventSelect }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [maxPrice, setMaxPrice] = useState(500);
 
+  const normalizeStatus = (status = '') => (
+    String(status)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase()
+  );
+
+  const isFinishedEvent = (event) => {
+    const normalizedStatus = normalizeStatus(event?.status);
+    if (normalizedStatus === 'termine' || normalizedStatus === 'finished') {
+      return true;
+    }
+
+    const eventDate = new Date(event?.date || '');
+    if (Number.isNaN(eventDate.getTime())) {
+      return false;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    eventDate.setHours(0, 0, 0, 0);
+
+    return eventDate < today;
+  };
+
   // Charger les événements depuis l'API
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         const res = await eventsAPI.getAll();
-        setEvents(res.data);
+        const publishedEvents = (res.data || []).filter((event) => {
+          const normalizedStatus = normalizeStatus(event?.status);
+          const isPublished = normalizedStatus === 'publie' || normalizedStatus === 'published';
+          return isPublished && !isFinishedEvent(event);
+        });
+
+        setEvents(publishedEvents);
         // Extraire les catégories uniques
-        const cats = [...new Set(res.data.map(e => e.category).filter(Boolean))];
+        const cats = [...new Set(publishedEvents.map(e => e.category).filter(Boolean))];
         setCategories(cats);
       } catch (err) {
         console.error('Erreur lors du chargement des événements :', err);
@@ -33,14 +65,23 @@ function CatalogPage({ onEventSelect }) {
 
   // Filtrer les événements selon les critères
   const filteredEvents = events.filter(event => {
+  if (isFinishedEvent(event)) return false;
+
+  const ticketPrices = (event.tickets || [])
+    .map((t) => Number(t.price))
+    .filter((p) => !Number.isNaN(p));
+  const basePrice = ticketPrices.length > 0
+    ? Math.min(...ticketPrices)
+    : Number(event.price || 0);
+
   const matchCategory =
     selectedCategories.length === 0 ||
     selectedCategories.includes(event.category);
 
-  const matchPrice = event.price <= maxPrice;
+  const matchPrice = basePrice <= maxPrice;
 
   const matchSearch =
-    event.title.toLowerCase().includes(searchTerm.toLowerCase());
+    (event.title || '').toLowerCase().includes(searchTerm.toLowerCase());
 
   return matchCategory && matchPrice && matchSearch;
   });

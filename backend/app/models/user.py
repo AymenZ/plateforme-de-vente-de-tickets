@@ -11,4 +11,6 @@ class User(Base):
     password_hash = Column(String(255))
     role_id = Column(Integer, ForeignKey("roles.id"))
     role = relationship("Role", back_populates="users")
+    orders = relationship("Order", back_populates="user")
+    tickets = relationship("Ticket", back_populates="user")
 

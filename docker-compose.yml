@@ -1,42 +1,74 @@
 services:
-  # ── MySQL Database ──
   db:
     image: mysql:8.0
     restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: eventdb
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-eventdb}
     ports:
-      - "3307:3306"               # Expose on 3307 to avoid conflict with local MySQL
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 12
 
-  # ── FastAPI Backend ──
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "mongodb://localhost:27017", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   backend:
     build: ./backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: "mysql+pymysql://root:root@db:3306/eventdb"
-      SECRET_KEY: "docker-secret-key-change-in-prod"
+      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-root}@db:3306/${MYSQL_DATABASE:-eventdb}
+      SECRET_KEY: ${SECRET_KEY:-docker-secret-key-change-in-prod}
+      MONGODB_URL: mongodb://mongodb:27017
+      MONGODB_DB_NAME: ${MONGODB_DB_NAME:-eventdb_comments}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_CURRENCY: ${STRIPE_CURRENCY:-usd}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:5173}
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://localhost:8000}
+      APP_GEMINI_API_KEY: ${APP_GEMINI_API_KEY:-}
+      APP_GEMINI_MODEL: ${APP_GEMINI_MODEL:-gemini-2.5-flash}
+      APP_GEMINI_ENABLED: ${APP_GEMINI_ENABLED:-true}
+      APP_GEMINI_ENDPOINT_BASE: ${APP_GEMINI_ENDPOINT_BASE:-https://generativelanguage.googleapis.com/v1beta/models}
+      AUTO_SEED: ${AUTO_SEED:-true}
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
 
-  # ── React Frontend (nginx) ──
   frontend:
     build: ./frontend
     restart: unless-stopped
     ports:
       - "5173:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
   mysql_data:
+  mongo_data:

@@ -5,7 +5,8 @@ from app.database import get_db
 from app.core.security import decode_token
 from app.models.user import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
 
 
 def get_current_user(
@@ -31,6 +32,26 @@ def get_current_user(
     if user is None:
         raise credentials_exception
 
+    return user
+
+
+def get_optional_current_user(
+    token: str | None = Depends(oauth2_scheme_optional),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Try to resolve a JWT user but never fail for missing/invalid token."""
+    if not token:
+        return None
+
+    payload = decode_token(token)
+    if payload is None:
+        return None
+
+    user_id: int = payload.get("user_id")
+    if user_id is None:
+        return None
+
+    user = db.query(User).filter(User.id == user_id).first()
     return user
 
 

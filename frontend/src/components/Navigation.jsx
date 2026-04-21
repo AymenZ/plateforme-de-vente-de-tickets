@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 import { eventsAPI } from "../services/api";
 import {
   FaShoppingCart,
@@ -21,12 +22,22 @@ import "../styles/components.css";
 
 function Navigation() {
   const { user, logout, isAuthenticated } = useAuth();
+  const { cartItemCount } = useCart();
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [cartCount] = useState(2);
   const [likesCount] = useState(1);
 
   const userType = user?.role || null;
+
+  const openProfile = () => {
+    navigate('/profile');
+    setIsProfileOpen(false);
+  };
+
+  const openReservations = () => {
+    navigate('/profile#orders');
+    setIsProfileOpen(false);
+  };
 
   const handleLogout = () => {
     logout();
@@ -78,7 +89,7 @@ function Navigation() {
     <nav className="navigation">
       <div className="nav-left">
         <h1 className="nav-logo" onClick={() => navigate("/")}>
-           EventHub 🇹🇳
+           Eventi 🇹🇳
         </h1>
       </div>
 
@@ -104,19 +115,14 @@ function Navigation() {
               <FaTicketAlt /> Parcourir
             </button>
 
-            <button className="nav-icon-btn">
+            <button className="nav-icon-btn" onClick={() => navigate('/cart')}>
               <FaShoppingCart />
-              {cartCount > 0 && (
-                <span className="cart-badge">{cartCount}</span>
+              {cartItemCount > 0 && (
+                <span className="cart-badge">{cartItemCount}</span>
               )}
             </button>
 
-            <button className="nav-icon-btn">
-              <FaRegHeart />
-              {likesCount > 0 && (
-                <span className="likes-badge">{likesCount}</span>
-              )}
-            </button>
+
 
             <div className="nav-profile">
               <button
@@ -128,12 +134,8 @@ function Navigation() {
 
               {isProfileOpen && (
                 <div className="nav-dropdown">
-                  <button className="dropdown-item">
+                  <button className="dropdown-item" onClick={openProfile}>
                     <FaUser /> Mon Profil
-                  </button>
-
-                  <button className="dropdown-item">
-                    <FaTicketAlt /> Mes Réservations
                   </button>
 
                   <hr className="dropdown-divider" />

@@ -60,11 +60,20 @@ export const eventsAPI = {
   getAll: () =>
     api.get('/events/'),
 
+  getAdminAll: () =>
+    api.get('/events/admin/all'),
+
+  toggleAdminStatus: (id) =>
+    api.patch(`/events/admin/${id}/toggle-status`),
+
   getById: (id) =>
     api.get(`/events/${id}`),
 
   getMyEvents: () =>
     api.get('/events/my'),
+
+  getOrganizerStats: () =>
+    api.get('/events/my/stats'),
 
   create: (eventData) =>
     api.post('/events/', eventData),
@@ -74,6 +83,93 @@ export const eventsAPI = {
 
   delete: (id) =>
     api.delete(`/events/${id}`),
+};
+
+// ─── Ticket Types ───────────────────────────────────────────
+export const ticketTypesAPI = {
+  listByEvent: (eventId) =>
+    api.get(`/events/${eventId}/tickets/`),
+
+  create: (eventId, payload) =>
+    api.post(`/events/${eventId}/tickets/`, payload),
+
+  update: (eventId, ticketId, payload) =>
+    api.put(`/events/${eventId}/tickets/${ticketId}`, payload),
+
+  delete: (eventId, ticketId) =>
+    api.delete(`/events/${eventId}/tickets/${ticketId}`),
+};
+
+// ─── Comments ───────────────────────────────────────────────
+export const commentsAPI = {
+  listByEvent: (eventId, params = {}) =>
+    api.get(`/events/${eventId}/comments`, { params }),
+
+  listAllForAdmin: (params = {}) =>
+    api.get('/comments/admin/all', { params }),
+
+  create: (eventId, payload) =>
+    api.post(`/events/${eventId}/comments`, payload),
+
+  listMine: (params = {}) =>
+    api.get('/users/me/comments', { params }),
+
+  update: (commentId, payload) =>
+    api.put(`/comments/${commentId}`, payload),
+
+  toggleHide: (commentId) =>
+    api.put(`/comments/${commentId}/hide`),
+
+  delete: (commentId) =>
+    api.delete(`/comments/${commentId}`),
+};
+
+// ─── Orders / Cart ──────────────────────────────────────────
+export const ordersAPI = {
+  getCart: () =>
+    api.get('/orders/cart'),
+
+  addCartItem: (ticketTypeId, quantity) =>
+    api.post('/orders/cart/items', { ticket_type_id: ticketTypeId, quantity }),
+
+  updateCartItem: (itemId, quantity) =>
+    api.put(`/orders/cart/items/${itemId}`, { quantity }),
+
+  deleteCartItem: (itemId) =>
+    api.delete(`/orders/cart/items/${itemId}`),
+
+  createCheckoutSession: (payload = {}) =>
+    api.post('/orders/cart/checkout-session', payload),
+
+  checkoutCart: () =>
+    api.post('/orders/cart/checkout'),
+
+  getMyOrders: () =>
+    api.get('/orders/my'),
+
+  getOrderById: (id) =>
+    api.get(`/orders/${id}`),
+};
+
+// ─── Payments ───────────────────────────────────────────────
+export const paymentsAPI = {
+  syncCheckoutSession: (sessionId) =>
+    api.post('/payments/checkout-session/sync', { session_id: sessionId }),
+};
+
+// ─── Purchased Tickets ─────────────────────────────────────
+export const ticketsAPI = {
+  getMy: () =>
+    api.get('/tickets/my'),
+
+  getById: (ticketId) =>
+    api.get(`/tickets/${ticketId}`),
+
+  getByOrder: (orderId) =>
+    api.get(`/tickets/order/${orderId}`),
+
+  verify: (ticketCode) =>
+    api.get(`/tickets/verify/${ticketCode}`),
 };
 
 export default api;
