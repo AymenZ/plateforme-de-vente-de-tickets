@@ -3,10 +3,10 @@ from typing import List
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, role_required
 from app.database import get_db
 from app.models.user import User
-from app.schemas.comment import CommentCreate, CommentOut, CommentUpdate
+from app.schemas.comment import AdminCommentOut, CommentCreate, CommentOut, CommentUpdate
 from app.services import comment_service
 
 router = APIRouter(tags=["Commentaires"])
@@ -42,6 +42,17 @@ def list_my_comments(
 ):
     """Lister mes commentaires."""
     return comment_service.list_comments_by_user(current_user=current_user, limit=limit, skip=skip)
+
+
+@router.get("/comments/admin/all", response_model=List[AdminCommentOut])
+def list_all_comments_admin(
+    limit: int = Query(default=200, ge=1, le=500),
+    skip: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(role_required("ADMIN")),
+):
+    """Lister tous les commentaires (modération admin)."""
+    return comment_service.list_all_comments_for_admin(db=db, limit=limit, skip=skip)
 
 
 @router.put("/comments/{comment_id}", response_model=CommentOut)

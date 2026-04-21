@@ -53,7 +53,7 @@ function RegisterPage() {
 
         <div className="auth-header">
           <h1>Inscription</h1>
-          <p>Créez votre compte EventHub</p>
+          <p>Créez votre compte Eventi</p>
         </div>
 
         {error && <div className="auth-error">{error}</div>}

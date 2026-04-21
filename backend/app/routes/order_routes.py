@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import role_required
 from app.database import get_db
 from app.models.user import User
-from app.schemas.order import CartItemAdd, CartItemUpdate, OrderOut
-from app.services import order_service
+from app.schemas.order import CartItemAdd, CartItemUpdate, CheckoutSessionCreate, CheckoutSessionOut, OrderOut
+from app.services import order_service, payment_service
 
 router = APIRouter(prefix="/orders", tags=["Commandes"])
 
@@ -59,6 +59,21 @@ def checkout_cart(
 ):
     """Valider le panier en commande (stock + capacité vérifiés)."""
     return order_service.checkout_cart(db=db, user_id=current_user.id)
+
+
+@router.post("/cart/checkout-session", response_model=CheckoutSessionOut)
+def create_checkout_session(
+    payload: CheckoutSessionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(role_required("CLIENT", "ADMIN")),
+):
+    """Créer une session Stripe à partir du panier actif."""
+    return payment_service.create_checkout_session_from_cart(
+        db=db,
+        current_user=current_user,
+        success_url=payload.success_url,
+        cancel_url=payload.cancel_url,
+    )
 
 
 @router.get("/my", response_model=List[OrderOut])

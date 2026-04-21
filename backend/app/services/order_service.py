@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
@@ -231,7 +233,10 @@ def checkout_cart(db: Session, user_id: int):
             event.attendees = (event.attendees or 0) + qty
 
         cart.total_amount = total
-        cart.status = "CONFIRMED"
+        cart.status = "PAID"
+        cart.payment_status = "PAID"
+        cart.payment_provider = "OFFLINE"
+        cart.paid_at = datetime.utcnow()
 
         db.commit()
 

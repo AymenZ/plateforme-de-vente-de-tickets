@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate, useParams } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import Navigation from './components/Navigation'
 import CatalogPage from './pages/CatalogPage'
 import EventDetailPage from './pages/EventDetailPage'
@@ -7,6 +7,9 @@ import RegisterPage from './pages/RegisterPage'
 import AdminPage from './pages/AdminPage'
 import OrganizerDashboard from './pages/OrganizerDashboard'
 import CartPage from './pages/CartPage'
+import PaymentSuccessPage from './pages/PaymentSuccessPage'
+import PaymentCancelPage from './pages/PaymentCancelPage'
+import ProfilePage from './pages/ProfilePage'
 import './App.css'
 
 function App() {
@@ -27,7 +30,13 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/dashboard" element={<OrganizerDashboard />} />
+        <Route path="/organizer-dashboard" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/organizer/dashboard" element={<Navigate to="/dashboard" replace />} />
         <Route path="/cart" element={<CartPage />} />
+        <Route path="/payment/success" element={<PaymentSuccessPage />} />
+        <Route path="/payment/cancel" element={<PaymentCancelPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
   )

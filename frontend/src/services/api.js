@@ -60,11 +60,20 @@ export const eventsAPI = {
   getAll: () =>
     api.get('/events/'),
 
+  getAdminAll: () =>
+    api.get('/events/admin/all'),
+
+  toggleAdminStatus: (id) =>
+    api.patch(`/events/admin/${id}/toggle-status`),
+
   getById: (id) =>
     api.get(`/events/${id}`),
 
   getMyEvents: () =>
     api.get('/events/my'),
+
+  getOrganizerStats: () =>
+    api.get('/events/my/stats'),
 
   create: (eventData) =>
     api.post('/events/', eventData),
@@ -96,6 +105,9 @@ export const commentsAPI = {
   listByEvent: (eventId, params = {}) =>
     api.get(`/events/${eventId}/comments`, { params }),
 
+  listAllForAdmin: (params = {}) =>
+    api.get('/comments/admin/all', { params }),
+
   create: (eventId, payload) =>
     api.post(`/events/${eventId}/comments`, payload),
 
@@ -123,6 +135,9 @@ export const ordersAPI = {
   deleteCartItem: (itemId) =>
     api.delete(`/orders/cart/items/${itemId}`),
 
+  createCheckoutSession: (payload = {}) =>
+    api.post('/orders/cart/checkout-session', payload),
+
   checkoutCart: () =>
     api.post('/orders/cart/checkout'),
 
@@ -131,6 +146,27 @@ export const ordersAPI = {
 
   getOrderById: (id) =>
     api.get(`/orders/${id}`),
+};
+
+// ─── Payments ───────────────────────────────────────────────
+export const paymentsAPI = {
+  syncCheckoutSession: (sessionId) =>
+    api.post('/payments/checkout-session/sync', { session_id: sessionId }),
+};
+
+// ─── Purchased Tickets ─────────────────────────────────────
+export const ticketsAPI = {
+  getMy: () =>
+    api.get('/tickets/my'),
+
+  getById: (ticketId) =>
+    api.get(`/tickets/${ticketId}`),
+
+  getByOrder: (orderId) =>
+    api.get(`/tickets/order/${orderId}`),
+
+  verify: (ticketCode) =>
+    api.get(`/tickets/verify/${ticketCode}`),
 };
 
 export default api;

@@ -23,3 +23,13 @@ class CommentOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     is_edited: bool
+
+
+class AdminCommentOut(BaseModel):
+    id: str
+    author_email: str
+    event_id: int
+    event_title: str
+    rating: int
+    content: str
+    created_at: datetime

@@ -67,3 +67,44 @@ class EventOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AdminEventRowOut(BaseModel):
+    id: int
+    title: str
+    organizer_id: int
+    organizer_email: str
+    date: Optional[str] = None
+    status: Optional[str] = None
+
+
+class OrganizerEventStatsOut(BaseModel):
+    event_id: int
+    title: str
+    status: Optional[str] = None
+    date: Optional[str] = None
+    location: Optional[str] = None
+    capacity: Optional[int] = 0
+    attendees: Optional[int] = 0
+    revenue: float = 0
+    tickets_sold: int = 0
+    paid_orders: int = 0
+    comments_count: int = 0
+    average_rating: Optional[float] = None
+
+
+class OrganizerSummaryStatsOut(BaseModel):
+    total_events: int = 0
+    published_events: int = 0
+    draft_events: int = 0
+    finished_events: int = 0
+    total_revenue: float = 0
+    total_tickets_sold: int = 0
+    total_comments: int = 0
+    average_rating: Optional[float] = None
+    currency: str = "USD"
+
+
+class OrganizerDashboardStatsOut(BaseModel):
+    summary: OrganizerSummaryStatsOut
+    by_event: list[OrganizerEventStatsOut]

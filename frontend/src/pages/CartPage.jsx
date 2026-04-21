@@ -99,9 +99,19 @@ function CartPage() {
 
     try {
       setIsCheckingOut(true);
-      const confirmedOrder = await checkoutCart();
-      alert(`Commande #${confirmedOrder.id} confirmée avec succès.`);
-      navigate('/');
+      const checkoutData = await checkoutCart();
+
+      if (checkoutData.checkout_url) {
+        window.location.assign(checkoutData.checkout_url);
+        return;
+      }
+
+      if (checkoutData.order_id) {
+        navigate(`/payment/success?order_id=${checkoutData.order_id}`);
+        return;
+      }
+
+      alert('Session de paiement créée, mais URL Stripe manquante.');
     } catch (err) {
       alert(err.response?.data?.detail || 'Checkout impossible');
     } finally {
@@ -195,7 +205,7 @@ function CartPage() {
               onClick={handleCheckout}
               disabled={isCheckingOut}
             >
-              {isCheckingOut ? 'Validation...' : 'Valider la commande'}
+              {isCheckingOut ? 'Redirection...' : 'Payer avec Stripe'}
             </button>
           </div>
         </div>

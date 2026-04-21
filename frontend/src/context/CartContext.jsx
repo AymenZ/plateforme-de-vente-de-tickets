@@ -56,10 +56,13 @@ export function CartProvider({ children }) {
   }, [refreshCart]);
 
   const checkoutCart = useCallback(async () => {
-    const res = await ordersAPI.checkoutCart();
-    await refreshCart();
+    const origin = window.location.origin;
+    const res = await ordersAPI.createCheckoutSession({
+      success_url: `${origin}/payment/success`,
+      cancel_url: `${origin}/payment/cancel`,
+    });
     return res.data;
-  }, [refreshCart]);
+  }, []);
 
   const cartItems = cart?.items || [];
   const cartItemCount = cartItems.reduce((acc, item) => acc + (item.quantity || 0), 0);

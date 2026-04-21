@@ -30,9 +30,32 @@ class OrderOut(BaseModel):
     id: int
     user_id: int
     status: str
+    payment_status: str
+    payment_provider: str | None = None
+    payment_currency: str | None = None
+    stripe_session_id: str | None = None
+    stripe_payment_intent_id: str | None = None
     total_amount: float
+    paid_at: datetime | None = None
     created_at: datetime
     items: list[OrderItemOut]
 
     class Config:
         from_attributes = True
+
+
+class CheckoutSessionCreate(BaseModel):
+    success_url: str | None = None
+    cancel_url: str | None = None
+
+
+class CheckoutSessionOut(BaseModel):
+    order_id: int
+    status: str
+    payment_status: str
+    checkout_url: str | None = None
+    session_id: str | None = None
+
+
+class CheckoutSessionSyncIn(BaseModel):
+    session_id: str = Field(..., min_length=3)

@@ -29,6 +29,16 @@ function Navigation() {
 
   const userType = user?.role || null;
 
+  const openProfile = () => {
+    navigate('/profile');
+    setIsProfileOpen(false);
+  };
+
+  const openReservations = () => {
+    navigate('/profile#orders');
+    setIsProfileOpen(false);
+  };
+
   const handleLogout = () => {
     logout();
     setIsProfileOpen(false);
@@ -79,7 +89,7 @@ function Navigation() {
     <nav className="navigation">
       <div className="nav-left">
         <h1 className="nav-logo" onClick={() => navigate("/")}>
-           EventHub 🇹🇳
+           Eventi 🇹🇳
         </h1>
       </div>
 
@@ -129,11 +139,11 @@ function Navigation() {
 
               {isProfileOpen && (
                 <div className="nav-dropdown">
-                  <button className="dropdown-item">
+                  <button className="dropdown-item" onClick={openProfile}>
                     <FaUser /> Mon Profil
                   </button>
 
-                  <button className="dropdown-item">
+                  <button className="dropdown-item" onClick={openReservations}>
                     <FaTicketAlt /> Mes Réservations
                   </button>
 

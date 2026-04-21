@@ -61,6 +61,43 @@ def _ensure_event_exists(db: Session, event_id: int) -> None:
         )
 
 
+def get_comment_stats_for_events(event_ids: list[int]) -> dict[int, dict]:
+    if not event_ids:
+        return {}
+
+    try:
+        _ensure_indexes()
+        collection = get_comments_collection()
+        pipeline = [
+            {"$match": {"event_id": {"$in": event_ids}}},
+            {
+                "$group": {
+                    "_id": "$event_id",
+                    "comments_count": {"$sum": 1},
+                    "average_rating": {"$avg": "$rating"},
+                    "rating_sum": {"$sum": "$rating"},
+                }
+            },
+        ]
+
+        output: dict[int, dict] = {}
+        for row in collection.aggregate(pipeline):
+            event_id = int(row.get("_id"))
+            comments_count = int(row.get("comments_count") or 0)
+            average_rating = row.get("average_rating")
+            rating_sum = float(row.get("rating_sum") or 0.0)
+
+            output[event_id] = {
+                "comments_count": comments_count,
+                "average_rating": float(average_rating) if average_rating is not None else None,
+                "rating_sum": rating_sum,
+            }
+
+        return output
+    except PyMongoError:
+        return {}
+
+
 def list_comments_by_event(db: Session, event_id: int, limit: int = 100, skip: int = 0):
     _ensure_event_exists(db, event_id)
 
@@ -92,6 +129,67 @@ def list_comments_by_user(current_user: User, limit: int = 100, skip: int = 0):
             .limit(limit)
         )
         return [_serialize_comment(doc) for doc in docs]
+    except PyMongoError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service commentaires indisponible",
+        )
+
+
+def list_all_comments_for_admin(db: Session, limit: int = 200, skip: int = 0):
+    try:
+        _ensure_indexes()
+        collection = get_comments_collection()
+        docs = list(
+            collection.find({})
+            .sort("created_at", DESCENDING)
+            .skip(skip)
+            .limit(limit)
+        )
+
+        if not docs:
+            return []
+
+        event_ids = sorted(
+            {
+                int(doc.get("event_id"))
+                for doc in docs
+                if doc.get("event_id") is not None
+            }
+        )
+        event_titles_by_id: dict[int, str] = {}
+
+        if event_ids:
+            rows = (
+                db.query(Event.id, Event.title)
+                .filter(Event.id.in_(event_ids))
+                .all()
+            )
+            event_titles_by_id = {
+                int(row.id): str(row.title or "")
+                for row in rows
+            }
+
+        serialized = []
+        for doc in docs:
+            event_id = int(doc.get("event_id") or 0)
+            event_title = event_titles_by_id.get(event_id)
+            if not event_title:
+                event_title = f"Événement #{event_id}" if event_id > 0 else "Événement inconnu"
+
+            serialized.append(
+                {
+                    "id": str(doc.get("_id")),
+                    "author_email": str(doc.get("user_email") or "Utilisateur inconnu"),
+                    "event_id": event_id,
+                    "event_title": event_title,
+                    "rating": int(doc.get("rating") or 0),
+                    "content": str(doc.get("content") or ""),
+                    "created_at": doc.get("created_at") or datetime.now(timezone.utc),
+                }
+            )
+
+        return serialized
     except PyMongoError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

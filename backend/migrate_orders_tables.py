@@ -18,9 +18,18 @@ CREATE TABLE IF NOT EXISTS orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'CART',
+    payment_status VARCHAR(30) NOT NULL DEFAULT 'UNPAID',
+    payment_provider VARCHAR(30) NULL,
+    payment_currency VARCHAR(10) NOT NULL DEFAULT 'usd',
+    stripe_session_id VARCHAR(191) NULL,
+    stripe_payment_intent_id VARCHAR(191) NULL,
     total_amount FLOAT NOT NULL DEFAULT 0,
+    paid_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX ix_orders_user_id (user_id),
+    UNIQUE INDEX ix_orders_stripe_session_id (stripe_session_id),
+    INDEX ix_orders_stripe_payment_intent_id (stripe_payment_intent_id),
     CONSTRAINT fk_orders_user
         FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
